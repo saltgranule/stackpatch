@@ -31,6 +31,7 @@ export function Login({ onLogin }: LoginProps) {
 
   return (
     <div className={styles.page}>
+      <p className={styles.defaultHint}>Default: admin / changeme</p>
       <form className={styles.card} onSubmit={handleSubmit}>
         <BrandLogo size="lg" align="left" />
 

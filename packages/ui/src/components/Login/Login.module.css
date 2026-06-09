@@ -1,9 +1,21 @@
 .page {
+  position: relative;
   min-height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 24px;
+}
+
+.defaultHint {
+  position: absolute;
+  right: 20px;
+  bottom: 16px;
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--color-text-muted) 65%, transparent);
+  user-select: none;
 }
 
 .card {
