@@ -41,6 +41,9 @@ pnpm run dev
 Or run `start.bat`, which handles everything and should work out of the box.
 
 Open `http://localhost:23333` in your browser.
+the default credentials for first time log-in:
+`admin` - username
+`changeme` - password
 
 ---
 
