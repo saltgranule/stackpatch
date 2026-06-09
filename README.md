@@ -2,12 +2,12 @@
 
 A lightweight open source web-based server panel for hosting game and application servers on Windows, with Linux support coming.
 
-## Why does stackpatch exist?
+## why does stackpatch exist?
 A lot of game servers and small applications run on spare hardware like old optiplex, or thinkpad laptops and desktops. Setting up Pterodactyl or a similar panel on that kind of hardware means installing Docker, configuring MySQL, overall just quite a lot of un-needed work. stackpatch is built for that gap. It runs directly on Windows without containers or external databases, uses a single SQLite file for persistence, and aims to stay small enough, to not burn any 3rd gen intel core i3 you plan to run it on. Note that as mentioned above, Linux support is planned out.
 
 ---
 
-## Features
+## features
 
 - Start, stop, restart, and terminate server instances
 - Live console output with real-time log streaming
@@ -19,7 +19,7 @@ A lot of game servers and small applications run on spare hardware like old opti
 
 ---
 
-## Requirements
+## requirements
 
 - Windows 10 or later (Linux support planned)
 - Node.js 20 or later
@@ -27,7 +27,7 @@ A lot of game servers and small applications run on spare hardware like old opti
 
 ---
 
-## Getting started
+## getting started
 
 ```bash
 git clone https://github.com/saltgranule/stackpatch
@@ -42,7 +42,7 @@ Open `http://localhost:23333` in your browser.
 
 ---
 
-## Project structure
+## project structure
 
 ```
 packages/
@@ -54,7 +54,22 @@ packages/
 
 ---
 
-## Configuration
+## UI
+area's of this panel's original design were heavily influenced by the TVA or Time Variance Authority entity from the Loki show on Disney plus.
+components are often solid, borderless, with a retro, warm, pastel feel. 
+Mobile support is around 80% done, though it is still very much in progress.
+full light/darkmode themeing.
+
+
+---
+
+## what's planned?
+memory / cpu limiting per instance, useful in scenario's where multiple instances are running at once.
+storage limiting per instance, essentially the same as above, just limiting the amount of disk space an instance can use, likely with some form of UI feedback.
+
+---
+
+## configuration
 
 | Setting | Default | Notes |
 |---|---|---|
