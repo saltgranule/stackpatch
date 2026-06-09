@@ -117,9 +117,10 @@ export class DaemonClient {
     // event triggers it (error vs close). Without this, a graceful shutdown
     // emits close without error, leaving the subscription silently frozen.
     let errorFired = false;
+    let destroyed = false;
 
     const fireError = (err: Error) => {
-      if (errorFired) return;
+      if (errorFired || destroyed) return;
       errorFired = true;
       handlers.onError?.(err);
     };
@@ -175,7 +176,10 @@ export class DaemonClient {
       fireError(new DaemonUnavailableError("Daemon connection closed"));
     });
 
-    return () => socket.destroy();
+    return () => {
+      destroyed = true;
+      socket.destroy();
+    };
   }
 
   subscribeStatus(handlers: {
@@ -192,9 +196,10 @@ export class DaemonClient {
     let buffer = "";
     let snapshotDelivered = false;
     let errorFired = false;
+    let destroyed = false;
 
     const fireError = (err: Error) => {
-      if (errorFired) return;
+      if (errorFired || destroyed) return;
       errorFired = true;
       handlers.onError?.(err);
     };
@@ -249,7 +254,10 @@ export class DaemonClient {
       fireError(new DaemonUnavailableError("Daemon connection closed"));
     });
 
-    return () => socket.destroy();
+    return () => {
+      destroyed = true;
+      socket.destroy();
+    };
   }
 
   async ping(): Promise<DaemonPingResult> {
