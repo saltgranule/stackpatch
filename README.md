@@ -5,6 +5,8 @@ A lightweight open source web-based server panel for hosting game and applicatio
 ## why does stackpatch exist?
 A lot of game servers and small applications run on spare hardware like old optiplex, or thinkpad laptops and desktops. Setting up Pterodactyl or a similar panel on that kind of hardware means installing Docker, configuring MySQL, overall just quite a lot of un-needed work. stackpatch is built for that gap. It runs directly on Windows without containers or external databases, uses a single SQLite file for persistence, and aims to stay small enough, to not burn any 3rd gen intel core i3 you plan to run it on. Note that as mentioned above, Linux support is planned out.
 
+![stackpatch](assets/1440p.png)
+
 ---
 
 ## features
