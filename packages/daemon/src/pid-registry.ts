@@ -104,7 +104,6 @@ export function killProcess(
 
     process.kill(pid, signal);
   } catch {
-    // Process may already be gone.
   }
 }
 

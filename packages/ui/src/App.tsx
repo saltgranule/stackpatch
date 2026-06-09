@@ -124,7 +124,6 @@ export function App() {
             );
           }
         } catch {
-          // Ignore malformed status events.
         }
       };
 

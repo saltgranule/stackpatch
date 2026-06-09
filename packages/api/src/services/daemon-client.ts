@@ -245,7 +245,6 @@ export class DaemonClient {
       fireError(error);
     });
 
-    // Same as subscribeLogs: catch graceful shutdown that only emits 'close'.
     socket.on("close", () => {
       fireError(new DaemonUnavailableError("Daemon connection closed"));
     });

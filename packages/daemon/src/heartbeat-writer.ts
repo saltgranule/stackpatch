@@ -10,7 +10,7 @@ function writeHeartbeat(socketPath: string): void {
 }
 
 export function startHeartbeat(socketPath: string): () => void {
-  writeHeartbeat(socketPath); // write immediately on startup
+  writeHeartbeat(socketPath);
   const interval = setInterval(() => writeHeartbeat(socketPath), HEARTBEAT_INTERVAL_MS);
 
   return () => {

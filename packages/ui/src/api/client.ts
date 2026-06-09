@@ -114,7 +114,6 @@ export async function downloadAuthenticatedFile(url: string, filename: string): 
         message = data.error;
       }
     } catch {
-      // Response body was not JSON.
     }
     throw new Error(message);
   }
@@ -332,7 +331,6 @@ export async function logToInstanceConsole(id: string, message: string): Promise
       body: JSON.stringify({ message }),
     });
   } catch {
-    // Best-effort console logging from the client.
   }
 }
 

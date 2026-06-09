@@ -90,7 +90,6 @@ function shutdown(code = 0) {
         child.kill();
       }
     } catch {
-      // ignore
     }
   }
   logStream.end(() => process.exit(code));

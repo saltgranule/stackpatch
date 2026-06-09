@@ -221,7 +221,6 @@ export class ProcessManager {
     try {
       stdin.end();
     } catch {
-      // Process may already be exiting.
     }
   }
 
@@ -723,7 +722,6 @@ export class ProcessManager {
       child.stdout?.destroy();
       child.stderr?.destroy();
     } catch {
-      // Process may already be gone.
     }
   }
 
