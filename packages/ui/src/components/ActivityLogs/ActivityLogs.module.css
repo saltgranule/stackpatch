@@ -1,0 +1,146 @@
+.page {
+  padding: 24px;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow: hidden;
+}
+
+.consoleStack {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.terminalWrap {
+  --console-tab-bg: var(--color-console-bg);
+
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 280px;
+}
+
+.tabSlot {
+  display: flex;
+  justify-content: flex-start;
+  align-items: flex-end;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 2;
+}
+
+.downloadTab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 20px 9px 16px;
+  background: var(--console-tab-bg);
+  color: var(--color-console-muted);
+  border-radius: 0 10px 0 0;
+  font-family: "Poppins", system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  border: none;
+  cursor: pointer;
+}
+
+.downloadTab:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.downloadTab::after {
+  content: "";
+  position: absolute;
+  right: -12px;
+  bottom: 0;
+  width: 12px;
+  height: 12px;
+  border-bottom-left-radius: 12px;
+  box-shadow: -6px 6px 0 6px var(--console-tab-bg);
+}
+
+.terminal {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  background: var(--color-console-bg);
+  border-radius: 0;
+  overflow: hidden;
+  position: relative;
+  z-index: 1;
+  padding-top: 20px;
+  box-sizing: border-box;
+}
+
+.output {
+  padding: 0 16px 16px;
+  font-family: "Cascadia Code", "Consolas", monospace;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--color-console-text);
+}
+
+.empty,
+.systemLine {
+  color: var(--color-console-muted);
+  font-family: "Poppins", system-ui, sans-serif;
+  font-size: 13px;
+}
+
+.line {
+  display: flex;
+  gap: 10px;
+  padding: 1px 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.timestamp {
+  color: var(--color-console-muted);
+  flex-shrink: 0;
+  font-size: 11px;
+  padding-top: 2px;
+  min-width: 68px;
+  opacity: 0.7;
+}
+
+.text {
+  color: var(--color-console-text);
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  align-items: stretch;
+  flex-shrink: 0;
+  min-width: 0;
+}
+
+@media (max-width: 768px) {
+  .page {
+    padding: 16px;
+    gap: 12px;
+  }
+
+  .terminalWrap {
+    min-height: 240px;
+  }
+
+  .cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .cards {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

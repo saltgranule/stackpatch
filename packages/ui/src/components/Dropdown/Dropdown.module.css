@@ -1,0 +1,129 @@
+.root {
+  position: relative;
+  min-width: 148px;
+}
+
+.rootOpen {
+  z-index: 20;
+}
+
+.trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px 8px 14px;
+  border-radius: 8px;
+  border: none;
+  background: var(--color-bg-muted);
+  color: var(--color-text);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.trigger:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.triggerConsole {
+  background: color-mix(in srgb, var(--color-console-text) 10%, var(--color-console-bg));
+  color: var(--color-console-text);
+}
+
+.chevronConsole {
+  border-right-color: var(--color-console-muted);
+  border-bottom-color: var(--color-console-muted);
+}
+
+.label {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chevron {
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  border-right: 2px solid var(--color-text-muted);
+  border-bottom: 2px solid var(--color-text-muted);
+  transform: rotate(45deg) translateY(-2px);
+}
+
+.menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 200;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 12%);
+}
+
+.menuScrollable {
+  --dropdown-option-height: 36px;
+  max-height: calc(var(--dropdown-option-height) * var(--dropdown-visible-count, 5) + 8px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--color-text-muted) 35%, transparent) transparent;
+}
+
+.menuScrollable::-webkit-scrollbar {
+  width: 6px;
+}
+
+.menuScrollable::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.menuScrollable::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--color-text-muted) 35%, transparent);
+  border-radius: 999px;
+}
+
+.menuScrollable::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--color-text-muted) 55%, transparent);
+}
+
+.option {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--color-text);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.option:hover {
+  background: var(--color-bg-muted);
+}
+
+.option:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.option:disabled:hover {
+  background: transparent;
+}
+
+.optionSelected {
+  color: var(--color-accent);
+}

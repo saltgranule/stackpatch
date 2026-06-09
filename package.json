@@ -1,0 +1,20 @@
+{
+  "name": "stackpatch",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Open-source local server panel — turn your old hardware into a server host.",
+  "license": "MIT",
+  "packageManager": "pnpm@9.15.9",
+  "engines": {
+    "node": ">=22.5"
+  },
+  "scripts": {
+    "dev": "node scripts/run-dev.mjs",
+    "dev:fast": "node scripts/run-dev.mjs --skip-install --skip-build",
+    "start:prod": "node scripts/run-prod.mjs",
+    "build": "pnpm -r run build",
+    "typecheck": "pnpm -r run typecheck",
+    "test": "pnpm -r run test",
+    "lint": "pnpm -r run lint"
+  }
+}

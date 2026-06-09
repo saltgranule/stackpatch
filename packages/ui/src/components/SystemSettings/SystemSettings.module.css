@@ -1,0 +1,54 @@
+.themeField {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.themeSwitch {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-console-text) 10%, var(--color-console-bg));
+  align-self: flex-start;
+}
+
+.themeOption {
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--color-console-muted);
+  transition: background 0.15s, color 0.15s;
+}
+
+.themeOption:hover {
+  color: var(--color-console-text);
+}
+
+.themeOptionActive {
+  background: var(--color-accent);
+  color: white;
+}
+
+.themeOptionActive:hover {
+  background: var(--color-accent-hover);
+  color: white;
+}
+
+.statusList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.statusItem {
+  color: var(--color-console-muted);
+}
+
+.statusValue {
+  color: var(--color-console-text);
+  font-weight: 600;
+}

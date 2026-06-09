@@ -1,0 +1,103 @@
+.tabYou {
+  font-weight: 700;
+  color: var(--color-accent);
+}
+
+.metaGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.metaWide {
+  grid-column: 1 / -1;
+}
+
+.metaLabel {
+  font-size: 12px;
+  color: var(--color-console-muted);
+}
+
+.metaValue {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-console-text);
+}
+
+.passwordRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.policyHint {
+  font-size: 12px;
+  color: var(--color-console-muted);
+}
+
+.permissionsPanel {
+  padding-top: 12px;
+  border-top: 1px solid color-mix(in srgb, var(--color-console-text) 12%, transparent);
+}
+
+.permissionsEmpty {
+  font-size: 13px;
+  color: var(--color-console-muted);
+}
+
+.permissionsList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.permissionRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.permissionInstance {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-console-text);
+}
+
+.permissionDropdown {
+  width: 160px;
+  flex-shrink: 0;
+}
+
+.createForm {
+  width: 100%;
+}
+
+.createFields {
+  display: grid;
+  grid-template-columns: 1fr 1fr 160px auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.roleDropdown {
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .metaGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .createFields {
+    grid-template-columns: 1fr;
+  }
+}

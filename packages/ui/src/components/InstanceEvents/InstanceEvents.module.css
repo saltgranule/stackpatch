@@ -1,0 +1,98 @@
+.empty {
+  font-size: 13px;
+  color: var(--color-console-muted);
+}
+
+.scheduleList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow: visible;
+}
+
+.scheduleRow {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-console-text) 6%, var(--color-console-bg));
+  overflow: visible;
+  position: relative;
+}
+
+.scheduleRowDisabled {
+  opacity: 0.65;
+}
+
+.scheduleRowElevated {
+  z-index: 2;
+}
+
+.scheduleMain {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.scheduleTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-console-text);
+}
+
+.scheduleMeta {
+  font-size: 12px;
+  color: var(--color-console-muted);
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.scheduleActions {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 2;
+}
+
+.statusDropdown {
+  min-width: 112px;
+}
+
+.intervalRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.intervalLabel {
+  font-size: 13px;
+  color: var(--color-console-text);
+  white-space: nowrap;
+}
+
+.intervalDropdown {
+  width: 88px;
+  flex-shrink: 0;
+}
+
+.unitDropdown {
+  width: 112px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 560px) {
+  .scheduleRow {
+    grid-template-columns: 1fr;
+  }
+
+  .scheduleActions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}

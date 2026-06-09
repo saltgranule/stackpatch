@@ -1,0 +1,46 @@
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.small .logo {
+  width: 28px;
+  height: 28px;
+}
+
+.small .name {
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: -0.02em;
+}
+
+.large {
+  justify-content: center;
+}
+
+.alignLeft {
+  justify-content: flex-start;
+}
+
+.large .logo {
+  width: 52px;
+  height: 52px;
+}
+
+.large .name {
+  font-weight: 700;
+  font-size: 24px;
+  letter-spacing: -0.02em;
+}
+
+.logo {
+  display: block;
+  object-fit: contain;
+  border-radius: 6px;
+}
+
+.name {
+  color: var(--color-text);
+}
