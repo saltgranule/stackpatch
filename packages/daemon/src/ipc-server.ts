@@ -18,6 +18,34 @@ import type {
 import { daemonConfig } from "./config.js";
 import type { ProcessManager } from "./process-manager.js";
 
+function writeSocket(socket: Socket, data: string): boolean {
+  if (!socket.writable) {
+    return false;
+  }
+
+  try {
+    socket.write(data);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function endSocket(socket: Socket, data?: string): void {
+  if (data !== undefined && !writeSocket(socket, data)) {
+    return;
+  }
+
+  if (socket.destroyed) {
+    return;
+  }
+
+  try {
+    socket.end();
+  } catch {
+  }
+}
+
 export class IpcServer {
   private server: net.Server | null = null;
 
@@ -27,6 +55,9 @@ export class IpcServer {
     await new Promise<void>((resolve, reject) => {
       this.server = net.createServer((socket) => {
         let buffer = "";
+
+        socket.on("error", () => {
+        });
 
         socket.on("data", (chunk) => {
           buffer += chunk.toString();
@@ -71,8 +102,10 @@ export class IpcServer {
     try {
       request = JSON.parse(raw) as DaemonRequest;
     } catch {
-      socket.write(`${JSON.stringify({ id: randomUUID(), ok: false, error: "Invalid JSON request" })}\n`);
-      socket.end();
+      endSocket(
+        socket,
+        `${JSON.stringify({ id: randomUUID(), ok: false, error: "Invalid JSON request" })}\n`,
+      );
       return;
     }
 
@@ -88,22 +121,20 @@ export class IpcServer {
 
     try {
       const result = await this.dispatch(request);
-      socket.write(`${JSON.stringify({ id: request.id, ok: true, result })}\n`);
-      socket.end();
+      endSocket(socket, `${JSON.stringify({ id: request.id, ok: true, result })}\n`);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Daemon request failed";
-      socket.write(`${JSON.stringify({ id: request.id, ok: false, error: message })}\n`);
-      socket.end();
+      endSocket(socket, `${JSON.stringify({ id: request.id, ok: false, error: message })}\n`);
     }
   }
 
   private handleSubscribeLogs(socket: Socket, request: DaemonRequest): void {
     const instanceId = request.params?.instanceId as string;
     if (!instanceId) {
-      socket.write(
+      endSocket(
+        socket,
         `${JSON.stringify({ id: request.id, ok: false, error: "instanceId is required" })}\n`,
       );
-      socket.end();
       return;
     }
 
@@ -113,11 +144,16 @@ export class IpcServer {
       ok: true,
       result: { lines },
     };
-    socket.write(`${JSON.stringify(response)}\n`);
+    if (!writeSocket(socket, `${JSON.stringify(response)}\n`)) {
+      return;
+    }
 
-    const unsubscribe = this.processManager.subscribeLogs(instanceId, (line: LogLine) => {
+    let unsubscribe = () => {};
+    unsubscribe = this.processManager.subscribeLogs(instanceId, (line: LogLine) => {
       const event: DaemonLogEvent = { event: "log", line };
-      socket.write(`${JSON.stringify(event)}\n`);
+      if (!writeSocket(socket, `${JSON.stringify(event)}\n`)) {
+        unsubscribe();
+      }
     });
 
     socket.on("close", unsubscribe);
@@ -131,11 +167,16 @@ export class IpcServer {
       ok: true,
       result: { instances },
     };
-    socket.write(`${JSON.stringify(response)}\n`);
+    if (!writeSocket(socket, `${JSON.stringify(response)}\n`)) {
+      return;
+    }
 
-    const unsubscribe = this.processManager.subscribeStatus((runtime) => {
+    let unsubscribe = () => {};
+    unsubscribe = this.processManager.subscribeStatus((runtime) => {
       const event: DaemonStatusEvent = { event: "status", runtime };
-      socket.write(`${JSON.stringify(event)}\n`);
+      if (!writeSocket(socket, `${JSON.stringify(event)}\n`)) {
+        unsubscribe();
+      }
     });
 
     socket.on("close", unsubscribe);

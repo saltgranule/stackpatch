@@ -115,8 +115,8 @@ async function main() {
   log("stackpatch", "building packages...");
   await run("npx", ["--yes", "pnpm@9.15.9", "build"]);
 
-  children.push(startService("panel", "@stackpatch/api"));
   children.push(startService("daemon", "@stackpatch/daemon"));
+  children.push(startService("panel", "@stackpatch/api"));
 }
 
 main().catch((error) => {

@@ -2,7 +2,7 @@ import type { InstanceRuntimeStatus, InstanceStatsEntry } from "@stackpatch/shar
 import { canAccessInstance } from "../auth/permissions.js";
 import type { AuthUser } from "../auth/types.js";
 import { getDaemonClient, isDaemonError } from "./daemon-client.js";
-import { isDaemonConnected } from "./daemon.js";
+import { isDaemonConnected, isDaemonResponsive } from "./daemon.js";
 import { collectInstanceStat } from "./instance-stats.js";
 import { applyRuntimeUpdate } from "./instance-sync.js";
 
@@ -17,11 +17,14 @@ interface StatusClient {
 }
 
 const OPEN = 1;
+const DAEMON_SUBSCRIBE_RETRY_MS = 5_000;
+const DAEMON_SUBSCRIBE_INITIAL_DELAY_MS = 1_000;
 
 class InstanceStatusBridge {
   private clients = new Set<StatusClient>();
   private daemonUnsubscribe: (() => void) | null = null;
   private reconnectTimer: NodeJS.Timeout | null = null;
+  private connecting = false;
 
   addClient(socket: StatusSocket, user: AuthUser): void {
     this.clients.add({ socket, user });
@@ -41,11 +44,34 @@ class InstanceStatusBridge {
   }
 
   private ensureDaemonSubscription(): void {
-    if (this.daemonUnsubscribe || this.clients.size === 0 || !isDaemonConnected()) {
+    if (this.daemonUnsubscribe || this.clients.size === 0 || this.connecting) {
       return;
     }
 
+    this.connecting = true;
+    void this.connectDaemonSubscription();
+  }
+
+  private async connectDaemonSubscription(): Promise<void> {
     try {
+      if (this.daemonUnsubscribe || this.clients.size === 0) {
+        return;
+      }
+
+      if (!isDaemonConnected()) {
+        this.scheduleReconnect(DAEMON_SUBSCRIBE_INITIAL_DELAY_MS);
+        return;
+      }
+
+      if (!(await isDaemonResponsive())) {
+        this.scheduleReconnect(DAEMON_SUBSCRIBE_INITIAL_DELAY_MS);
+        return;
+      }
+
+      if (this.daemonUnsubscribe || this.clients.size === 0) {
+        return;
+      }
+
       this.daemonUnsubscribe = getDaemonClient().subscribeStatus({
         onSnapshot: () => {
           // Snapshot is reconciled when clients connect; live updates drive the UI.
@@ -62,10 +88,12 @@ class InstanceStatusBridge {
         throw error;
       }
       this.scheduleReconnect();
+    } finally {
+      this.connecting = false;
     }
   }
 
-  private scheduleReconnect(): void {
+  private scheduleReconnect(delay = DAEMON_SUBSCRIBE_RETRY_MS): void {
     if (this.reconnectTimer || this.clients.size === 0) {
       return;
     }
@@ -76,7 +104,7 @@ class InstanceStatusBridge {
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = null;
       this.ensureDaemonSubscription();
-    }, 5000);
+    }, delay);
   }
 
   private broadcastStats(instanceId: string, stats: InstanceStatsEntry): void {
