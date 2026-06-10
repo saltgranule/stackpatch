@@ -11,6 +11,8 @@ export interface InstanceProcessConfig {
   executablePath: string;
   arguments: string;
   workingDirectory: string;
+  memoryLimitMb: number | null;
+  cpuLimitPercent: number | null;
   autoRestart: boolean;
   maxRestartRetries: number;
   stopCommand: string;

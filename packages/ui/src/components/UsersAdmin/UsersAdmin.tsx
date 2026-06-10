@@ -16,6 +16,7 @@ import {
   setUserInstancePermission,
   updateUser,
 } from "../../api/client";
+import { useNotifications } from "../../hooks/useNotifications";
 import form from "../../styles/consoleForm.module.css";
 import { CardDropdown, ConsoleCard } from "../ConsoleCard";
 import { PageContent, PageShell, pageShellStyles } from "../PageShell/PageShell";
@@ -101,6 +102,7 @@ export function UsersAdmin({ currentUser }: UsersAdminProps) {
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
   const [permissionBusy, setPermissionBusy] = useState<string | null>(null);
   const [passwordSaving, setPasswordSaving] = useState(false);
+  const { notifySuccess, notifyError } = useNotifications();
 
   const adminCount = useMemo(
     () => users.filter((user) => user.role === "admin").length,
@@ -126,15 +128,23 @@ export function UsersAdmin({ currentUser }: UsersAdminProps) {
 
   async function handleCreate(event: React.FormEvent) {
     event.preventDefault();
+    const nextUsername = username.trim();
+
     try {
-      await createUser({ username: username.trim(), password, role });
+      await createUser({ username: nextUsername, password, role });
       setUsername("");
       setPassword("");
       setRole("viewer");
       await loadUsers();
       setError(null);
+      notifySuccess(
+        `${nextUsername} created`,
+        `New ${formatUserRole(role).toLowerCase()} account is ready.`,
+      );
     } catch (createError) {
-      setError(createError instanceof Error ? createError.message : "Failed to create user");
+      const message = createError instanceof Error ? createError.message : "Failed to create user";
+      setError(message);
+      notifyError("Failed to create user", message);
     }
   }
 
@@ -170,8 +180,12 @@ export function UsersAdmin({ currentUser }: UsersAdminProps) {
       await deleteUser(user.id);
       await loadUsers();
       setError(null);
+      notifySuccess(`${user.username} deleted`, "The account has been removed.");
     } catch (deleteError) {
-      setError(deleteError instanceof Error ? deleteError.message : "Failed to delete user");
+      const message =
+        deleteError instanceof Error ? deleteError.message : "Failed to delete user";
+      setError(message);
+      notifyError("Failed to delete user", message);
     } finally {
       setPendingDeleteId(null);
     }

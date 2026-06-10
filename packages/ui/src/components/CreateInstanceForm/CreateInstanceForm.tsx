@@ -9,6 +9,7 @@ import {
   fetchPathDefaults,
   fetchSuggestedWorkingDirectory,
 } from "../../api/client";
+import { useNotifications } from "../../hooks/useNotifications";
 import form from "../../styles/consoleForm.module.css";
 import { CardDropdown, ConsoleCard } from "../ConsoleCard";
 import { PageContent, PageShell } from "../PageShell/PageShell";
@@ -36,6 +37,7 @@ export function CreateInstanceForm({ onCreated, onCancel }: CreateInstanceFormPr
   const [autoRestart, setAutoRestart] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { notifyError } = useNotifications();
 
   useEffect(() => {
     fetchPathDefaults()
@@ -89,7 +91,10 @@ export function CreateInstanceForm({ onCreated, onCancel }: CreateInstanceFormPr
       });
       onCreated(instance);
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "Failed to create instance");
+      const message =
+        submitError instanceof Error ? submitError.message : "Failed to create instance";
+      setError(message);
+      notifyError("Failed to create instance", message);
     } finally {
       setSubmitting(false);
     }

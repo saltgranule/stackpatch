@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS instances (
   arguments TEXT NOT NULL DEFAULT '',
   working_directory TEXT NOT NULL,
   memory_limit_mb INTEGER,
+  cpu_limit_percent INTEGER,
   auto_restart INTEGER NOT NULL DEFAULT 0,
   max_restart_retries INTEGER NOT NULL DEFAULT 3,
   stop_command TEXT NOT NULL DEFAULT 'stop',

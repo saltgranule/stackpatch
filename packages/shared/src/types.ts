@@ -17,6 +17,7 @@ export interface Instance {
   startupCommand: string;
   workingDirectory: string;
   memoryLimitMb: number | null;
+  cpuLimitPercent: number | null;
   autoRestart: boolean;
   maxRestartRetries: number;
   stopCommand: string;

@@ -1,0 +1,87 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  position: relative;
+  padding-bottom: 12px;
+  animation: riseIn 0.24s ease-out;
+}
+
+.exiting {
+  animation: riseOut 0.24s ease-in forwards;
+}
+
+@keyframes riseIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes riseOut {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+}
+
+.body {
+  background: var(--color-console-bg);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+}
+
+.title {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--color-console-text);
+  line-height: 1.35;
+}
+
+.description {
+  font-size: 12px;
+  color: var(--color-console-muted);
+  line-height: 1.45;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.tail {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 12px;
+  height: 12px;
+  background: var(--color-console-bg);
+  clip-path: polygon(0 0, 100% 0, 100% 100%);
+}
+
+@media (max-width: 640px) {
+  .body {
+    padding: 16px;
+  }
+
+  .closeButton {
+    width: 100%;
+  }
+}

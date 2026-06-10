@@ -31,6 +31,8 @@ interface CreateInstanceBody {
   applicationType?: ApplicationType;
   startupCommand: string;
   workingDirectory?: string;
+  memoryLimitMb?: number | null;
+  cpuLimitPercent?: number | null;
   autoRestart?: boolean;
   maxRestartRetries?: number;
   stopCommand?: string;
@@ -41,9 +43,28 @@ interface UpdateInstanceBody {
   applicationType?: ApplicationType;
   startupCommand?: string;
   workingDirectory?: string;
+  memoryLimitMb?: number | null;
+  cpuLimitPercent?: number | null;
   autoRestart?: boolean;
   maxRestartRetries?: number;
   stopCommand?: string;
+}
+
+function parseOptionalResourceLimit(
+  value: number | null | undefined,
+  fieldName: string,
+  max?: number,
+): number | null | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (value === null) {
+    return null;
+  }
+  if (!Number.isInteger(value) || value < 1 || (max !== undefined && value > max)) {
+    throw new Error(`Invalid ${fieldName}`);
+  }
+  return value;
 }
 
 function parseApplicationType(value: string | undefined): ApplicationType | null {
@@ -129,6 +150,17 @@ export async function instanceRoutes(app: FastifyInstance): Promise<void> {
       );
       const resolvedType = parsedApplicationType ?? "minecraft";
 
+      let memoryLimitMb: number | null | undefined;
+      let cpuLimitPercent: number | null | undefined;
+      try {
+        memoryLimitMb = parseOptionalResourceLimit(request.body.memoryLimitMb, "memoryLimitMb");
+        cpuLimitPercent = parseOptionalResourceLimit(request.body.cpuLimitPercent, "cpuLimitPercent", 100);
+      } catch (error) {
+        return reply.status(400).send({
+          error: error instanceof Error ? error.message : "Invalid resource limit",
+        });
+      }
+
       const instance = createInstance(id, {
         ...request.body,
         name: name.trim(),
@@ -136,6 +168,8 @@ export async function instanceRoutes(app: FastifyInstance): Promise<void> {
         executablePath: resolved.executablePath,
         arguments: resolved.arguments,
         workingDirectory: resolvedWorkingDirectory,
+        memoryLimitMb,
+        cpuLimitPercent,
         stopCommand:
           request.body.stopCommand?.trim() ??
           getApplicationTypeDefinition(resolvedType).defaultStopCommand,
@@ -187,6 +221,7 @@ export async function instanceRoutes(app: FastifyInstance): Promise<void> {
           arguments: source.arguments,
           workingDirectory,
           memoryLimitMb: source.memoryLimitMb,
+          cpuLimitPercent: source.cpuLimitPercent,
           autoRestart: source.autoRestart,
           maxRestartRetries: source.maxRestartRetries,
           stopCommand: source.stopCommand,
@@ -247,12 +282,29 @@ export async function instanceRoutes(app: FastifyInstance): Promise<void> {
           args = resolved.arguments;
         }
 
+        let memoryLimitMb: number | null | undefined;
+        let cpuLimitPercent: number | null | undefined;
+        try {
+          memoryLimitMb = parseOptionalResourceLimit(request.body.memoryLimitMb, "memoryLimitMb");
+          cpuLimitPercent = parseOptionalResourceLimit(
+            request.body.cpuLimitPercent,
+            "cpuLimitPercent",
+            100,
+          );
+        } catch (error) {
+          return reply.status(400).send({
+            error: error instanceof Error ? error.message : "Invalid resource limit",
+          });
+        }
+
         const updated = updateInstance(existing.id, {
           name: request.body.name?.trim(),
           applicationType: parsedApplicationType ?? undefined,
           executablePath,
           arguments: args,
           workingDirectory,
+          memoryLimitMb,
+          cpuLimitPercent,
           autoRestart: request.body.autoRestart,
           maxRestartRetries: request.body.maxRestartRetries,
           stopCommand: request.body.stopCommand,

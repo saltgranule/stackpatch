@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { SystemSettingsStatus, ThemePreference } from "@stackpatch/shared";
 import { fetchSystemSettings, updateSystemSettings } from "../../api/client";
+import { useNotifications } from "../../hooks/useNotifications";
 import form from "../../styles/consoleForm.module.css";
 import { ConsoleCard } from "../ConsoleCard";
 import { PageContent, PageShell, pageShellStyles } from "../PageShell/PageShell";
@@ -24,7 +25,7 @@ export function SystemSettings({ themePreference, onThemeChange }: SystemSetting
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
+  const { notifySuccess, notifyError } = useNotifications();
 
   useEffect(() => {
     let cancelled = false;
@@ -61,7 +62,6 @@ export function SystemSettings({ themePreference, onThemeChange }: SystemSetting
     setPanelPort(String(status.settings.panelPort));
     setDaemonPort(String(status.settings.daemonPort));
     setError(null);
-    setSaved(false);
   }
 
   async function handleSubmit(event: React.FormEvent) {
@@ -70,7 +70,6 @@ export function SystemSettings({ themePreference, onThemeChange }: SystemSetting
 
     setSaving(true);
     setError(null);
-    setSaved(false);
 
     try {
       const updated = await updateSystemSettings({
@@ -80,9 +79,23 @@ export function SystemSettings({ themePreference, onThemeChange }: SystemSetting
       setStatus(updated);
       setPanelPort(String(updated.settings.panelPort));
       setDaemonPort(String(updated.settings.daemonPort));
-      setSaved(true);
+
+      const needsRestart =
+        updated.restartRequired ||
+        updated.envOverrides.panelPort ||
+        updated.envOverrides.daemonPort;
+
+      notifySuccess(
+        "Settings saved",
+        needsRestart
+          ? "Restart stackpatch to apply port changes."
+          : "System settings were updated.",
+      );
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : "Failed to save settings");
+      const message =
+        saveError instanceof Error ? saveError.message : "Failed to save settings";
+      setError(message);
+      notifyError("Failed to save settings", message);
     } finally {
       setSaving(false);
     }
@@ -160,16 +173,8 @@ export function SystemSettings({ themePreference, onThemeChange }: SystemSetting
               </p>
             )}
 
-            {status.restartRequired && !saved && (
+            {status.restartRequired && (
               <p className={form.warning}>Restart stackpatch for port changes to take effect.</p>
-            )}
-
-            {saved && (
-              <p className={`${form.feedback} ${form.success}`}>
-                {status.restartRequired || status.envOverrides.panelPort || status.envOverrides.daemonPort
-                  ? "Settings saved. Restart stackpatch to apply port changes."
-                  : "Settings saved."}
-              </p>
             )}
 
             <div className={form.actions}>

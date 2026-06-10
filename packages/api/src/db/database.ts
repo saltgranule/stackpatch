@@ -71,6 +71,10 @@ function migrate(database: DatabaseSync): void {
     );
   }
 
+  if (!instanceColumns.some((column) => column.name === "cpu_limit_percent")) {
+    database.exec("ALTER TABLE instances ADD COLUMN cpu_limit_percent INTEGER");
+  }
+
   migrateInstanceStoppingStatus(database);
   migrateApplicationTypeGeneric(database);
   migrateAuditLogs(database);

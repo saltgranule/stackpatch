@@ -27,6 +27,8 @@ export function summarizeInstanceUpdate(
     applicationType?: string;
     startupCommand?: string;
     workingDirectory?: string;
+    memoryLimitMb?: number | null;
+    cpuLimitPercent?: number | null;
     autoRestart?: boolean;
     maxRestartRetries?: number;
     stopCommand?: string;
@@ -45,6 +47,20 @@ export function summarizeInstanceUpdate(
   }
   if (body.workingDirectory?.trim() && body.workingDirectory.trim() !== existing.workingDirectory) {
     changes.push("working directory updated");
+  }
+  if (body.memoryLimitMb !== undefined && body.memoryLimitMb !== existing.memoryLimitMb) {
+    changes.push(
+      body.memoryLimitMb === null
+        ? "memory limit removed"
+        : `memory limit set to ${body.memoryLimitMb} MB`,
+    );
+  }
+  if (body.cpuLimitPercent !== undefined && body.cpuLimitPercent !== existing.cpuLimitPercent) {
+    changes.push(
+      body.cpuLimitPercent === null
+        ? "CPU limit removed"
+        : `CPU limit set to ${body.cpuLimitPercent}%`,
+    );
   }
   if (body.autoRestart !== undefined && body.autoRestart !== existing.autoRestart) {
     changes.push(`auto-restart ${body.autoRestart ? "enabled" : "disabled"}`);

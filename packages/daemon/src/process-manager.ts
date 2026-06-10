@@ -26,7 +26,11 @@ import {
   killProcess,
   PidRegistry,
 } from "./pid-registry.js";
-import { createWindowsKillJob, type WindowsKillJob } from "./windows-kill-job.js";
+import {
+  createWindowsInstanceJob,
+  isMemoryLimitExitCode,
+  type WindowsKillJob,
+} from "./windows-kill-job.js";
 
 interface ManagedProcess {
   config: InstanceProcessConfig;
@@ -41,6 +45,7 @@ interface ManagedProcess {
   stopping: boolean;
   intentionalStop: boolean;
   restartTimer: NodeJS.Timeout | null;
+  windowsJob: WindowsKillJob | null;
 }
 
 type LogSubscriber = (line: LogLine) => void;
@@ -52,7 +57,6 @@ export class ProcessManager {
   private readonly logSubscribers = new Map<string, Set<LogSubscriber>>();
   private readonly statusSubscribers = new Set<StatusSubscriber>();
   private readonly lifecycleTails = new Map<string, Promise<void>>();
-  private readonly windowsKillJob: WindowsKillJob | null = createWindowsKillJob();
 
   async initialize(): Promise<void> {
     const killed = forceKillAllRegistered();
@@ -403,6 +407,7 @@ export class ProcessManager {
       stopping: false,
       intentionalStop: false,
       restartTimer: null,
+      windowsJob: null,
     };
 
     managed.config = config;
@@ -538,6 +543,7 @@ export class ProcessManager {
     for (const [instanceId, managed] of this.processes.entries()) {
       managed.process = null;
       managed.status = "stopped";
+      this.releaseWindowsJob(managed);
       this.pidRegistry.remove(instanceId);
       this.publishStatus(instanceId);
     }
@@ -583,6 +589,12 @@ export class ProcessManager {
       return;
     }
 
+    this.releaseWindowsJob(managed);
+    managed.windowsJob = createWindowsInstanceJob({
+      memoryLimitMb: managed.config.memoryLimitMb,
+      cpuLimitPercent: managed.config.cpuLimitPercent,
+    });
+
     const args = parseArguments(managed.config.arguments);
     const child = spawn(managed.config.executablePath, args, {
       cwd: managed.config.workingDirectory,
@@ -609,10 +621,10 @@ export class ProcessManager {
       managed.status = "running";
       if (child.pid) {
         this.pidRegistry.set(instanceId, child.pid, managed.startedAt ?? new Date().toISOString(), managed.config);
-        const assigned = this.windowsKillJob?.assignPid(child.pid);
+        const assigned = managed.windowsJob?.assignPid(child.pid);
         if (assigned === false) {
           console.warn(
-            `[stackpatch] Could not assign process ${child.pid} for instance ${instanceId} to Windows kill job`,
+            `[stackpatch] Could not assign process ${child.pid} for instance ${instanceId} to Windows instance job`,
           );
         }
       }
@@ -642,6 +654,16 @@ export class ProcessManager {
         managed.status = "stopped";
         this.publishStatus(instanceId);
         return;
+      }
+
+      if (isMemoryLimitExitCode(code)) {
+        const limitMb = managed.config.memoryLimitMb;
+        const limitLabel = limitMb ? `${limitMb} MB` : "configured";
+        const lines = managed.logBuffer.appendLine(
+          "stderr",
+          `Process terminated: exceeded memory limit (${limitLabel}).`,
+        );
+        this.publishLogs(instanceId, lines);
       }
 
       managed.status = "crashed";
@@ -702,8 +724,25 @@ export class ProcessManager {
   private detachProcess(instanceId: string, managed: ManagedProcess): void {
     this.releaseChildResources(managed.process);
     managed.process = null;
+    this.releaseWindowsJob(managed);
     this.pidRegistry.remove(instanceId);
     this.flushLogBuffer(instanceId, managed);
+  }
+
+  /**
+   * Job handle release points — every path that can end a process must call this:
+   *   child.on("exit")        → detachProcess
+   *   child.on("error")       → detachProcess
+   *   intentional stop        → completeIntentionalStop → detachProcess
+   *   daemon shutdown         → explicit call per managed instance
+   *   re-spawn                → called before creating new job
+   *   ensureReadyForStart     → called after waitUntilProcessesExit
+   *
+   * close() is idempotent — safe to call more than once on the same job.
+   */
+  private releaseWindowsJob(managed: ManagedProcess): void {
+    managed.windowsJob?.close();
+    managed.windowsJob = null;
   }
 
   private flushLogBuffer(instanceId: string, managed: ManagedProcess): void {
@@ -751,6 +790,7 @@ export class ProcessManager {
     }
 
     await this.waitUntilProcessesExit(null, alive, DEFAULT_TERMINATE_TIMEOUT_MS);
+    this.releaseWindowsJob(managed);
     this.pidRegistry.remove(instanceId);
     managed.stopping = false;
     managed.intentionalStop = false;
@@ -915,6 +955,7 @@ export class ProcessManager {
       stopping: false,
       intentionalStop: false,
       restartTimer: null,
+      windowsJob: null,
     };
     this.processes.set(instanceId, managed);
     return managed;

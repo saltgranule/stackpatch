@@ -28,6 +28,8 @@ interface InstanceRow {
   max_restart_retries: number;
   stop_command: string;
   application_type: string;
+  memory_limit_mb: number | null;
+  cpu_limit_percent: number | null;
 }
 
 interface ScheduleRow {
@@ -92,7 +94,7 @@ export function loadInstanceProcessConfig(instanceId: string): {
     const row = database
       .prepare(
         `SELECT id, name, executable_path, arguments, working_directory, auto_restart,
-                max_restart_retries, stop_command, application_type
+                max_restart_retries, stop_command, application_type, memory_limit_mb, cpu_limit_percent
          FROM instances
          WHERE id = ?`,
       )
@@ -115,6 +117,8 @@ export function loadInstanceProcessConfig(instanceId: string): {
         maxRestartRetries: row.max_restart_retries,
         stopCommand:
           row.stop_command || getApplicationTypeDefinition(applicationType).defaultStopCommand,
+        memoryLimitMb: row.memory_limit_mb,
+        cpuLimitPercent: row.cpu_limit_percent,
       },
     };
   } finally {

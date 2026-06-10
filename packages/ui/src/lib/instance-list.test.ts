@@ -12,6 +12,7 @@ function makeInstance(overrides: Partial<Instance> = {}): Instance {
     startupCommand: "java -jar server.jar",
     workingDirectory: "C:\\servers\\survival",
     memoryLimitMb: null,
+    cpuLimitPercent: null,
     autoRestart: true,
     maxRestartRetries: 3,
     stopCommand: "stop",

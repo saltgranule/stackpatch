@@ -5,7 +5,6 @@ import {
   fetchCurrentUser,
   fetchHealth,
   getInstanceStatusWsUrl,
-  logToInstanceConsole,
   logout,
   syncInstances,
   restartInstance,
@@ -26,10 +25,13 @@ import {
 import { InstanceView } from "./components/InstanceView/InstanceView";
 import { BrandLogo } from "./components/BrandLogo/BrandLogo";
 import { Login } from "./components/Login/Login";
+import { NotificationProvider } from "./components/Notifications";
 import { TopBar, type GlobalNavItem } from "./components/TopBar/TopBar";
 import { SystemSettings } from "./components/SystemSettings/SystemSettings";
 import { UsersAdmin } from "./components/UsersAdmin/UsersAdmin";
+import { useInstanceNotifications } from "./hooks/useInstanceNotifications";
 import { useTheme } from "./hooks/useTheme";
+import { useNotifications } from "./hooks/useNotifications";
 import { canControlInstance, isGlobalAdmin } from "./lib/instance-permissions";
 
 type AppRoute =
@@ -172,33 +174,6 @@ export function App() {
     setRoute(DEFAULT_ROUTE);
   }
 
-  async function runInstanceAction(action: "start" | "stop" | "terminate" | "restart") {
-    if (route.level !== "instance") return;
-
-    setActionLoading(true);
-
-    try {
-      const actionFn =
-        action === "start"
-          ? startInstance
-          : action === "stop"
-            ? stopInstance
-            : action === "terminate"
-              ? terminateInstance
-              : restartInstance;
-
-      const updated = await actionFn(route.instanceId);
-      setInstances((current) =>
-        current.map((instance) => (instance.id === updated.id ? updated : instance)),
-      );
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Action failed";
-      void logToInstanceConsole(route.instanceId, message);
-    } finally {
-      setActionLoading(false);
-    }
-  }
-
   async function handleInstanceCreated(instance: Instance) {
     setInstances((current) => [instance, ...current]);
     setShowCreateForm(false);
@@ -229,26 +204,27 @@ export function App() {
   }
 
   return (
-    <AuthenticatedApp
-      user={user}
-      route={route}
-      setRoute={setRoute}
-      health={health}
-      instances={instances}
-      instanceStats={instanceStats}
-      loading={loading}
-      actionLoading={actionLoading}
-      showCreateForm={showCreateForm}
-      preference={preference}
-      setTheme={setTheme}
-      setShowCreateForm={setShowCreateForm}
-      setInstances={setInstances}
-      setActionLoading={setActionLoading}
-      onLogout={() => void handleLogout()}
-      onOpenInstance={openInstance}
-      onCreateInstanceCreated={(instance) => void handleInstanceCreated(instance)}
-      runInstanceAction={(action) => void runInstanceAction(action)}
-    />
+    <NotificationProvider>
+      <AuthenticatedApp
+        user={user}
+        route={route}
+        setRoute={setRoute}
+        health={health}
+        instances={instances}
+        instanceStats={instanceStats}
+        loading={loading}
+        actionLoading={actionLoading}
+        showCreateForm={showCreateForm}
+        preference={preference}
+        setTheme={setTheme}
+        setShowCreateForm={setShowCreateForm}
+        setInstances={setInstances}
+        setActionLoading={setActionLoading}
+        onLogout={() => void handleLogout()}
+        onOpenInstance={openInstance}
+        onCreateInstanceCreated={(instance) => void handleInstanceCreated(instance)}
+      />
+    </NotificationProvider>
   );
 }
 
@@ -270,7 +246,6 @@ interface AuthenticatedAppProps {
   onLogout: () => void;
   onOpenInstance: (instanceId: string) => void;
   onCreateInstanceCreated: (instance: Instance) => void;
-  runInstanceAction: (action: "start" | "stop" | "terminate" | "restart") => void;
 }
 
 function AuthenticatedApp({
@@ -287,11 +262,22 @@ function AuthenticatedApp({
   setTheme,
   setShowCreateForm,
   setInstances,
+  setActionLoading,
   onLogout,
   onOpenInstance,
   onCreateInstanceCreated,
-  runInstanceAction,
 }: AuthenticatedAppProps) {
+  const { notifySuccess, notifyError } = useNotifications();
+  const instanceNotifications = useInstanceNotifications(instances, {
+    notifySuccess,
+    notifyError,
+  });
+
+  function handleCreateInstanceCreated(instance: Instance) {
+    notifySuccess(`${instance.name} created`, "Your new instance is ready.");
+    onCreateInstanceCreated(instance);
+  }
+
   const selectedInstance =
     route.level === "instance"
       ? instances.find((instance) => instance.id === route.instanceId)
@@ -305,6 +291,43 @@ function AuthenticatedApp({
 
   function backToInstances() {
     setRoute({ level: "global", view: "instances" });
+  }
+
+  async function runInstanceAction(action: "start" | "stop" | "terminate" | "restart") {
+    if (route.level !== "instance" || !selectedInstance) return;
+
+    setActionLoading(true);
+    const instanceName = selectedInstance.name;
+
+    try {
+      const actionFn =
+        action === "start"
+          ? startInstance
+          : action === "stop"
+            ? stopInstance
+            : action === "terminate"
+              ? terminateInstance
+              : restartInstance;
+
+      const updated = await actionFn(route.instanceId);
+      setInstances((current) =>
+        current.map((instance) => (instance.id === updated.id ? updated : instance)),
+      );
+
+      if (action === "start") {
+        instanceNotifications.notifyStartResult(updated);
+      } else if (action === "restart") {
+        instanceNotifications.notifyRestartResult(updated);
+      } else if (action === "stop") {
+        instanceNotifications.notifyStopResult(instanceName);
+      } else {
+        instanceNotifications.notifyTerminateResult(instanceName);
+      }
+    } catch (error) {
+      instanceNotifications.notifyActionFailed(error);
+    } finally {
+      setActionLoading(false);
+    }
   }
 
   if (route.level === "instance") {
@@ -388,7 +411,7 @@ function AuthenticatedApp({
     ) : globalView === "instances" ? (
       showCreateForm ? (
         <CreateInstanceForm
-          onCreated={onCreateInstanceCreated}
+          onCreated={handleCreateInstanceCreated}
           onCancel={() => setShowCreateForm(false)}
         />
       ) : (
@@ -397,6 +420,7 @@ function AuthenticatedApp({
           instances={instances}
           instanceStats={instanceStats}
           loading={loading}
+          instanceNotifications={instanceNotifications}
           onOpenInstance={onOpenInstance}
           onCreateInstance={() => setShowCreateForm(true)}
           onInstanceUpdated={(updated) =>

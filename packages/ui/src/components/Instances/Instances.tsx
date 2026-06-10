@@ -11,7 +11,8 @@ import {
   deleteInstance,
   startInstance,
   stopInstance,
-} from "../../api/client";import {
+} from "../../api/client";
+import {
   filterAndSearchInstances,
   INSTANCE_LIST_FILTER_OPTIONS,
   type InstanceListFilter,
@@ -24,6 +25,7 @@ import {
   formatDeleteInstanceConfirm,
   isGlobalAdmin,
 } from "../../lib/instance-permissions";
+import type { InstanceNotificationHandlers } from "../../hooks/useInstanceNotifications";
 import { Dropdown } from "../Dropdown/Dropdown";
 import { ScrollArea } from "../ScrollArea/ScrollArea";
 import styles from "./Instances.module.css";
@@ -33,6 +35,7 @@ interface InstancesProps {
   instances: Instance[];
   instanceStats: Record<string, InstanceStatsEntry>;
   loading: boolean;
+  instanceNotifications: InstanceNotificationHandlers;
   onOpenInstance: (instanceId: string) => void;
   onCreateInstance: () => void;
   onInstanceUpdated: (instance: Instance) => void;
@@ -147,6 +150,7 @@ export function Instances({
   instances,
   instanceStats,
   loading,
+  instanceNotifications,
   onOpenInstance,
   onCreateInstance,
   onInstanceUpdated,
@@ -157,7 +161,6 @@ export function Instances({
   const [filter, setFilter] = useState<InstanceListFilter>("all");
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
   const canCreate = isGlobalAdmin(user);
 
@@ -167,8 +170,6 @@ export function Instances({
   );
 
   async function handleCardAction(instance: Instance, action: InstanceCardAction) {
-    setError(null);
-
     if ((action === "start" || action === "stop") && !canControlInstance(user, instance.id)) {
       return;
     }
@@ -207,22 +208,32 @@ export function Instances({
 
     try {
       switch (action) {
-        case "start":
-          onInstanceUpdated(await startInstance(instance.id));
+        case "start": {
+          const updated = await startInstance(instance.id);
+          onInstanceUpdated(updated);
+          instanceNotifications.notifyStartResult(updated);
           break;
-        case "stop":
+        }
+        case "stop": {
           onInstanceUpdated(await stopInstance(instance.id));
+          instanceNotifications.notifyStopResult(instance.name);
           break;
-        case "clone":
-          onInstanceAdded(await cloneInstance(instance.id, cloneName!));
+        }
+        case "clone": {
+          const cloned = await cloneInstance(instance.id, cloneName!);
+          onInstanceAdded(cloned);
+          instanceNotifications.notifyCloneResult(cloned, instance.name);
           break;
-        case "delete":
+        }
+        case "delete": {
           await deleteInstance(instance.id);
           onInstanceRemoved(instance.id);
+          instanceNotifications.notifyDeleteResult(instance.name);
           break;
+        }
       }
     } catch (actionError) {
-      setError(actionError instanceof Error ? actionError.message : "Action failed");
+      instanceNotifications.notifyActionFailed(actionError);
     } finally {
       setBusyId(null);
     }
@@ -276,8 +287,6 @@ export function Instances({
           )}
         </div>
       </div>
-
-      {error && <p className={styles.error}>{error}</p>}
 
       {visibleInstances.length === 0 ? (
         <p className={styles.emptyFilter}>No instances match your search or filter.</p>

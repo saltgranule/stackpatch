@@ -28,6 +28,8 @@ export interface CreateInstanceInput {
   applicationType?: ApplicationType;
   startupCommand: string;
   workingDirectory?: string;
+  memoryLimitMb?: number | null;
+  cpuLimitPercent?: number | null;
   autoRestart?: boolean;
   maxRestartRetries?: number;
   stopCommand?: string;
@@ -38,6 +40,8 @@ export interface UpdateInstanceInput {
   applicationType?: ApplicationType;
   startupCommand?: string;
   workingDirectory?: string;
+  memoryLimitMb?: number | null;
+  cpuLimitPercent?: number | null;
   autoRestart?: boolean;
   maxRestartRetries?: number;
   stopCommand?: string;

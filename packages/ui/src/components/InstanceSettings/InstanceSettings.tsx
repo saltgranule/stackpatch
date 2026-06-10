@@ -7,6 +7,7 @@ import {
   usesStdinStop,
 } from "@stackpatch/shared";
 import { deleteInstance, updateInstance } from "../../api/client";
+import { useNotifications } from "../../hooks/useNotifications";
 import { formatDeleteInstanceConfirm } from "../../lib/instance-permissions";
 import form from "../../styles/consoleForm.module.css";
 import { CardDropdown, ConsoleCard } from "../ConsoleCard";
@@ -38,10 +39,16 @@ export function InstanceSettings({
   const [workingDirectory, setWorkingDirectory] = useState(instance.workingDirectory);
   const [autoRestart, setAutoRestart] = useState(instance.autoRestart);
   const [stopCommand, setStopCommand] = useState(instance.stopCommand);
+  const [memoryLimitMb, setMemoryLimitMb] = useState(
+    instance.memoryLimitMb === null ? "" : String(instance.memoryLimitMb),
+  );
+  const [cpuLimitPercent, setCpuLimitPercent] = useState(
+    instance.cpuLimitPercent === null ? "" : String(instance.cpuLimitPercent),
+  );
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
+  const { notifySuccess, notifyError } = useNotifications();
 
   const preset = useMemo(() => getApplicationTypeDefinition(applicationType), [applicationType]);
   const showStopCommand =
@@ -62,27 +69,49 @@ export function InstanceSettings({
     }
   }
 
+  function parseOptionalLimitInput(value: string): number | null {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return null;
+    }
+    const parsed = Number(trimmed);
+    if (!Number.isInteger(parsed) || parsed < 1) {
+      throw new Error("Resource limits must be positive whole numbers.");
+    }
+    return parsed;
+  }
+
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     if (!canEdit) return;
 
     setSaving(true);
     setError(null);
-    setSaved(false);
 
     try {
+      const parsedMemoryLimitMb = parseOptionalLimitInput(memoryLimitMb);
+      const parsedCpuLimitPercent = parseOptionalLimitInput(cpuLimitPercent);
+      if (parsedCpuLimitPercent !== null && parsedCpuLimitPercent > 100) {
+        throw new Error("CPU limit cannot exceed 100%.");
+      }
+
       const updated = await updateInstance(instance.id, {
         name: name.trim(),
         applicationType,
         startupCommand: startupCommand.trim(),
         workingDirectory: workingDirectory.trim(),
+        memoryLimitMb: parsedMemoryLimitMb,
+        cpuLimitPercent: parsedCpuLimitPercent,
         autoRestart,
         stopCommand: showStopCommand ? stopCommand.trim() : "",
       });
       onUpdated(updated);
-      setSaved(true);
+      notifySuccess("Settings saved", `${updated.name} settings were updated.`);
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : "Failed to save settings");
+      const message =
+        saveError instanceof Error ? saveError.message : "Failed to save settings";
+      setError(message);
+      notifyError("Failed to save settings", message);
     } finally {
       setSaving(false);
     }
@@ -95,8 +124,9 @@ export function InstanceSettings({
     setWorkingDirectory(instance.workingDirectory);
     setAutoRestart(instance.autoRestart);
     setStopCommand(instance.stopCommand);
+    setMemoryLimitMb(instance.memoryLimitMb === null ? "" : String(instance.memoryLimitMb));
+    setCpuLimitPercent(instance.cpuLimitPercent === null ? "" : String(instance.cpuLimitPercent));
     setError(null);
-    setSaved(false);
   }
 
   async function handleDelete() {
@@ -123,7 +153,10 @@ export function InstanceSettings({
     startupCommand !== instance.startupCommand ||
     workingDirectory !== instance.workingDirectory ||
     autoRestart !== instance.autoRestart ||
-    stopCommand !== instance.stopCommand;
+    stopCommand !== instance.stopCommand ||
+    memoryLimitMb !== (instance.memoryLimitMb === null ? "" : String(instance.memoryLimitMb)) ||
+    cpuLimitPercent !==
+      (instance.cpuLimitPercent === null ? "" : String(instance.cpuLimitPercent));
 
   return (
     <PageShell title="Instance Settings" subtitle={instance.name}>
@@ -215,7 +248,60 @@ export function InstanceSettings({
               </span>
             </label>
 
-            {saved && <p className={`${form.feedback} ${form.success}`}>Settings saved.</p>}
+            {canEdit && (
+              <div className={form.actions}>
+                <button type="submit" className={form.actionPrimary} disabled={saving}>
+                  {saving ? "Saving…" : "Save Settings"}
+                </button>
+                <button
+                  type="button"
+                  className={form.actionSecondary}
+                  onClick={handleReset}
+                  disabled={saving || !hasChanges}
+                >
+                  Reset
+                </button>
+              </div>
+            )}
+          </form>
+        </ConsoleCard>
+
+        <ConsoleCard
+          tabLabel="resources"
+          hint="Optional memory and CPU caps enforced via Windows Job Objects. Restart the instance to apply changes."
+          trackMenus
+        >
+          <form className={form.form} onSubmit={handleSubmit}>
+            <label className={form.field}>
+              <span className={form.fieldLabel}>Memory Limit (MB)</span>
+              <input
+                type="number"
+                min={1}
+                value={memoryLimitMb}
+                onChange={(event) => setMemoryLimitMb(event.target.value)}
+                disabled={!canEdit}
+                placeholder="Unlimited"
+              />
+              <span className={form.hint}>
+                Hard cap on process memory. Leave empty for no limit.
+              </span>
+            </label>
+
+            <label className={form.field}>
+              <span className={form.fieldLabel}>CPU Limit (%)</span>
+              <input
+                type="number"
+                min={1}
+                max={100}
+                value={cpuLimitPercent}
+                onChange={(event) => setCpuLimitPercent(event.target.value)}
+                disabled={!canEdit}
+                placeholder="Unlimited"
+              />
+              <span className={form.hint}>
+                Maximum CPU share for this instance (1–100). Leave empty for no limit.
+              </span>
+            </label>
 
             {canEdit && (
               <div className={form.actions}>

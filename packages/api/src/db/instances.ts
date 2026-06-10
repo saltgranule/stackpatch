@@ -15,6 +15,7 @@ interface InstanceRow {
   arguments: string;
   working_directory: string;
   memory_limit_mb: number | null;
+  cpu_limit_percent: number | null;
   auto_restart: number;
   max_restart_retries: number;
   stop_command: string;
@@ -42,6 +43,7 @@ function mapRow(row: InstanceRow): Instance {
     startupCommand: formatStartupCommand(row.executable_path, row.arguments),
     workingDirectory: row.working_directory,
     memoryLimitMb: row.memory_limit_mb,
+    cpuLimitPercent: row.cpu_limit_percent,
     autoRestart: row.auto_restart === 1,
     maxRestartRetries: row.max_restart_retries,
     stopCommand: row.stop_command || getApplicationTypeDefinition(applicationType).defaultStopCommand,
@@ -78,6 +80,8 @@ export function toProcessConfig(instance: Instance): InstanceProcessConfig {
     autoRestart: instance.autoRestart,
     maxRestartRetries: instance.maxRestartRetries,
     stopCommand: instance.stopCommand || DEFAULT_STOP_COMMAND,
+    memoryLimitMb: instance.memoryLimitMb,
+    cpuLimitPercent: instance.cpuLimitPercent,
   };
 }
 
@@ -122,6 +126,7 @@ export interface CreateInstanceInput {
   arguments?: string;
   workingDirectory: string;
   memoryLimitMb?: number | null;
+  cpuLimitPercent?: number | null;
   autoRestart?: boolean;
   maxRestartRetries?: number;
   stopCommand?: string;
@@ -133,6 +138,8 @@ export interface UpdateInstanceInput {
   executablePath?: string;
   arguments?: string;
   workingDirectory?: string;
+  memoryLimitMb?: number | null;
+  cpuLimitPercent?: number | null;
   autoRestart?: boolean;
   maxRestartRetries?: number;
   stopCommand?: string;
@@ -158,9 +165,9 @@ export function createInstance(id: string, input: CreateInstanceInput): Instance
     .prepare(
       `INSERT INTO instances (
         id, name, application_type, executable_path, arguments, working_directory,
-        memory_limit_mb, auto_restart, max_restart_retries, stop_command, status, pid,
+        memory_limit_mb, cpu_limit_percent, auto_restart, max_restart_retries, stop_command, status, pid,
         created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'stopped', NULL, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'stopped', NULL, ?, ?)`,
     )
     .run(
       id,
@@ -170,6 +177,7 @@ export function createInstance(id: string, input: CreateInstanceInput): Instance
       input.arguments ?? "",
       input.workingDirectory,
       input.memoryLimitMb ?? null,
+      input.cpuLimitPercent ?? null,
       input.autoRestart ? 1 : 0,
       input.maxRestartRetries ?? 3,
       resolveStopCommand(applicationType, input.stopCommand),
@@ -204,6 +212,8 @@ export function updateInstance(id: string, input: UpdateInstanceInput): Instance
         executable_path = ?,
         arguments = ?,
         working_directory = ?,
+        memory_limit_mb = ?,
+        cpu_limit_percent = ?,
         auto_restart = ?,
         max_restart_retries = ?,
         stop_command = ?,
@@ -216,6 +226,8 @@ export function updateInstance(id: string, input: UpdateInstanceInput): Instance
       input.executablePath ?? existing.executablePath,
       input.arguments ?? existing.arguments,
       input.workingDirectory ?? existing.workingDirectory,
+      input.memoryLimitMb !== undefined ? input.memoryLimitMb : existing.memoryLimitMb,
+      input.cpuLimitPercent !== undefined ? input.cpuLimitPercent : existing.cpuLimitPercent,
       (input.autoRestart ?? existing.autoRestart) ? 1 : 0,
       input.maxRestartRetries ?? existing.maxRestartRetries,
       nextStopCommand,
