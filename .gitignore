@@ -11,6 +11,7 @@ coverage/
 *.log
 .DS_Store
 Thumbs.db
+startdev.bat
 daemon.sock
 packages/*/src/**/*.js
 packages/*/src/**/*.js.map

@@ -1,7 +1,13 @@
-import { execSync, spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  createOrchestratorLogger,
+  killChildTree,
+  runQuiet,
+  startService,
+  waitForServicesReady,
+} from "./orchestrator-common.mjs";
 import { readSystemPorts } from "./read-system-ports.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -18,89 +24,31 @@ const env = {
 
 fs.mkdirSync(logsDir, { recursive: true });
 const logStream = fs.createWriteStream(logFile, { flags: "a" });
-
-function write(line) {
-  process.stdout.write(`${line}\n`);
-  logStream.write(`${line}\n`);
-}
-
-function log(service, message) {
-  write(`[${new Date().toISOString()}] [${service}] ${message}`);
-}
-
-function run(command, commandArgs, options = {}) {
-  return new Promise((resolve, reject) => {
-    const child = spawn(command, commandArgs, {
-      cwd: root,
-      env,
-      stdio: "inherit",
-      shell: process.platform === "win32",
-      ...options,
-    });
-    child.on("error", reject);
-    child.on("exit", (code) => {
-      if (code === 0) {
-        resolve();
-      } else {
-        reject(new Error(`${command} ${commandArgs.join(" ")} exited with code ${code}`));
-      }
-    });
-  });
-}
-
-function startService(service, filter) {
-  const child = spawn(
-    "npx",
-    ["--yes", "pnpm@9.15.9", "--filter", filter, "run", "dev"],
-    {
-      cwd: root,
-      env,
-      shell: process.platform === "win32",
-      stdio: ["ignore", "pipe", "pipe"],
-    },
-  );
-
-  const pipe = (stream, isError) => {
-    stream.on("data", (chunk) => {
-      for (const line of chunk.toString().split(/\r?\n/)) {
-        if (!line.trim()) continue;
-        log(service, isError ? `[stderr] ${line}` : line);
-      }
-    });
-  };
-
-  pipe(child.stdout, false);
-  pipe(child.stderr, true);
-
-  child.on("exit", (code, signal) => {
-    if (shuttingDown) return;
-    const reason = signal ? `signal ${signal}` : `code ${code ?? 1}`;
-    log(service, `stopped (${reason})`);
-    shutdown(code ?? 1);
-  });
-
-  return child;
-}
+const { write, log } = createOrchestratorLogger(logStream);
 
 const children = [];
 let shuttingDown = false;
+const startupAbort = new AbortController();
 
 function shutdown(code = 0) {
   if (shuttingDown) return;
   shuttingDown = true;
+  startupAbort.abort();
   log("stackpatch", "shutting down...");
   for (const child of children) {
-    try {
-      if (process.platform === "win32" && child.pid) {
-        execSync(`taskkill /F /T /PID ${child.pid}`, { stdio: "ignore", windowsHide: true });
-      } else {
-        child.kill();
-      }
-    } catch {
-    }
+    killChildTree(child);
   }
   logStream.end(() => process.exit(code));
   setTimeout(() => process.exit(code), 1000).unref();
+}
+
+function handleServiceExit(service) {
+  return (_code, signal, { wasReady } = {}) => {
+    if (shuttingDown) return;
+    const reason = signal ? `signal ${signal}` : `code ${_code ?? 1}`;
+    log(service, wasReady ? `stopped after ready (${reason})` : `stopped (${reason})`);
+    shutdown(_code ?? 1);
+  };
 }
 
 process.on("SIGINT", () => shutdown(0));
@@ -119,19 +67,51 @@ async function main() {
 
   if (!skipInstall && !fs.existsSync(path.join(root, "node_modules"))) {
     log("stackpatch", "installing dependencies...");
-    await run("npx", ["--yes", "pnpm@9.15.9", "install"]);
+    await runQuiet(root, env, "npx", ["--yes", "pnpm@9.15.9", "install"], logStream);
   }
 
   if (!skipBuild) {
     log("stackpatch", "building shared package...");
-    await run("npx", ["--yes", "pnpm@9.15.9", "--filter", "@stackpatch/shared", "build"]);
+    await runQuiet(
+      root,
+      env,
+      "npx",
+      ["--yes", "pnpm@9.15.9", "--filter", "@stackpatch/shared", "build"],
+      logStream,
+    );
   }
 
-  children.push(startService("daemon", "@stackpatch/daemon"));
-  children.push(startService("panel", "@stackpatch/api"));
+  const daemon = startService({
+    root,
+    env,
+    log,
+    service: "daemon",
+    filter: "@stackpatch/daemon",
+    runScript: "dev",
+    onExit: handleServiceExit("daemon"),
+  });
+  const panel = startService({
+    root,
+    env,
+    log,
+    service: "panel",
+    filter: "@stackpatch/api",
+    runScript: "dev",
+    onExit: handleServiceExit("panel"),
+  });
+
+  children.push(daemon.child, panel.child);
+  await waitForServicesReady([daemon, panel], { signal: startupAbort.signal });
+  if (shuttingDown) {
+    return;
+  }
+  log("stackpatch", "stackpatch is ready.");
 }
 
 main().catch((error) => {
+  if (shuttingDown) {
+    return;
+  }
   log("stackpatch", error instanceof Error ? error.message : String(error));
   shutdown(1);
 });
