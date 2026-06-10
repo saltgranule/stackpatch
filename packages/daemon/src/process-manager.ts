@@ -20,7 +20,7 @@ import {
 import { LogBuffer } from "./log-buffer.js";
 import { appendPersistedLogs, loadPersistedLogs } from "./log-store.js";
 import { parseArguments } from "./parse-arguments.js";
-import { spawnInstanceProcess } from "./spawn-instance-process.js";
+import { spawnInstanceProcess, buildConsoleSpawnEnv } from "./spawn-instance-process.js";
 import {
   forceKillAllRegistered,
   isProcessAlive,
@@ -601,7 +601,6 @@ export class ProcessManager {
       cwd: managed.config.workingDirectory,
       stdio: ["pipe", "pipe", "pipe"],
       windowsHide: true,
-      env: process.env,
       detached: process.platform !== "win32",
     });
 
@@ -968,14 +967,14 @@ export class ProcessManager {
         cwd: workingDirectory,
         stdio: ["ignore", "pipe", "pipe"],
         windowsHide: true,
-        env: process.env,
+        env: buildConsoleSpawnEnv(),
       });
     }
 
     return spawn("sh", ["-c", command], {
       cwd: workingDirectory,
       stdio: ["ignore", "pipe", "pipe"],
-      env: process.env,
+      env: buildConsoleSpawnEnv(),
     });
   }
 

@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  buildConsoleSpawnEnv,
   buildInstanceSpawnArgs,
   isWindowsScriptExecutable,
 } from "./spawn-instance-process.js";
@@ -21,6 +22,27 @@ describe("isWindowsScriptExecutable", () => {
 
     vi.stubGlobal("process", { ...process, platform: "linux" });
     expect(isWindowsScriptExecutable("/server/run.bat")).toBe(false);
+  });
+});
+
+describe("buildConsoleSpawnEnv", () => {
+  it("sets color-friendly env vars on top of the base environment", () => {
+    expect(buildConsoleSpawnEnv({ PATH: "/bin", CUSTOM: "1" })).toEqual({
+      PATH: "/bin",
+      CUSTOM: "1",
+      FORCE_COLOR: "1",
+      TERM: "xterm-256color",
+    });
+  });
+
+  it("overrides existing FORCE_COLOR and TERM values", () => {
+    expect(
+      buildConsoleSpawnEnv({ FORCE_COLOR: "0", TERM: "dumb", PATH: "/bin" }),
+    ).toEqual({
+      PATH: "/bin",
+      FORCE_COLOR: "1",
+      TERM: "xterm-256color",
+    });
   });
 });
 

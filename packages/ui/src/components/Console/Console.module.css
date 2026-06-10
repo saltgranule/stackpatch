@@ -25,11 +25,24 @@
 
 .tabSlot {
   display: flex;
-  justify-content: flex-start;
+  justify-content: space-between;
   align-items: flex-end;
+  gap: 12px;
   flex-shrink: 0;
   position: relative;
   z-index: 2;
+}
+
+.colorHint {
+  margin: 0;
+  padding-bottom: 6px;
+  font-family: "Poppins", system-ui, sans-serif;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--color-console-muted);
+  opacity: 0.8;
+  text-align: right;
+  max-width: min(420px, 55%);
 }
 
 .downloadTab {
@@ -216,6 +229,10 @@
 
   .commandBar {
     flex-wrap: wrap;
+  }
+
+  .colorHint {
+    display: none;
   }
 
   .submit {

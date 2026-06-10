@@ -251,6 +251,9 @@ export function Console({
             >
               {downloading ? "Downloading…" : "Download logs"}
             </button>
+            <p className={styles.colorHint}>
+              Some applications may not show colors when run through a panel.
+            </p>
           </div>
           <div className={styles.terminal}>
             <ScrollArea variant="console" className={styles.output}>
