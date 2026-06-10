@@ -30,8 +30,6 @@ Install these before running stackpatch:
 |---|---|
 | **OS** | Windows 10 or later (Linux support planned) |
 | **Node.js** | [22.5 or later](https://nodejs.org/) — required by `start.bat`, `startdev.bat`, and the orchestrator scripts |
-| **Git** | To clone the repository |
-| **Network** | First run downloads dependencies via `npx` and pnpm (no Docker or external database) |
 
 **Optional**
 
