@@ -20,6 +20,7 @@ import {
 import { LogBuffer } from "./log-buffer.js";
 import { appendPersistedLogs, loadPersistedLogs } from "./log-store.js";
 import { parseArguments } from "./parse-arguments.js";
+import { spawnInstanceProcess } from "./spawn-instance-process.js";
 import {
   forceKillAllRegistered,
   isProcessAlive,
@@ -596,7 +597,7 @@ export class ProcessManager {
     });
 
     const args = parseArguments(managed.config.arguments);
-    const child = spawn(managed.config.executablePath, args, {
+    const child = spawnInstanceProcess(managed.config.executablePath, args, {
       cwd: managed.config.workingDirectory,
       stdio: ["pipe", "pipe", "pipe"],
       windowsHide: true,
