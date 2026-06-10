@@ -29,7 +29,7 @@ Install these before running stackpatch:
 | Requirement | Details |
 |---|---|
 | **OS** | Windows 10 or later (Linux support planned) |
-| **Node.js** | [22.5 or later](https://nodejs.org/) — required by `start.bat`, `startdev.bat`, and the orchestrator scripts |
+| **Node.js** | [22.5 or later](https://nodejs.org/) — required by `start.bat` and nev scripts.
 
 **Optional**
 
