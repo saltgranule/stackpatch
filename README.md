@@ -25,21 +25,29 @@ A lot of game servers and small applications run on spare hardware like old opti
 ## requirements
 
 - Windows 10 or later (Linux support planned)
-- Node.js 20 or later
-- pnpm (installed on run of start.bat)
+- Node.js 22.5 or later
+- pnpm 9 (installed automatically on first run of `start.bat` or `pnpm run start:prod`)
 
 ---
 
 ## getting started
 
+**Production (recommended for hosting):**
+
 ```bash
 git clone https://github.com/saltgranule/stackpatch
 cd stackpatch
+pnpm run start:prod
+```
+
+On Windows, double-click `start.bat` instead — same as `pnpm run start:prod`.
+
+**Development (UI hot reload, Vite middleware):**
+
+```bash
 pnpm install
 pnpm run dev
 ```
-
-Or run `start.bat`, which handles everything and should work out of the box.
 
 Open [http://localhost:23333](http://localhost:23333) in your browser.
 

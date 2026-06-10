@@ -12,6 +12,7 @@
     "dev": "node scripts/run-dev.mjs",
     "dev:fast": "node scripts/run-dev.mjs --skip-install --skip-build",
     "start:prod": "node scripts/run-prod.mjs",
+    "start:prod:fast": "node scripts/run-prod.mjs --skip-install --skip-build",
     "build": "pnpm -r run build",
     "typecheck": "pnpm -r run typecheck",
     "test": "pnpm -r run test",

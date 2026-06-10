@@ -7,8 +7,19 @@ import { readSystemPorts } from "./read-system-ports.mjs";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const logsDir = path.join(root, ".data", "logs");
 const logFile = path.join(logsDir, "prod.log");
+const args = new Set(process.argv.slice(2));
+const skipInstall = args.has("--skip-install");
+const skipBuild = args.has("--skip-build");
 
-const env = {
+// Install/build need devDependencies (tsc, vite, etc.). Only runtime services use production mode.
+const buildEnv = {
+  ...process.env,
+  NODE_ENV: "development",
+  // Non-interactive pnpm (no Y/n prompts when launched from start.bat).
+  CI: process.env.CI ?? "1",
+};
+
+const serviceEnv = {
   ...process.env,
   NODE_ENV: "production",
 };
@@ -25,7 +36,7 @@ function log(service, message) {
   write(`[${new Date().toISOString()}] [${service}] ${message}`);
 }
 
-function run(command, commandArgs) {
+function run(command, commandArgs, env = buildEnv) {
   return new Promise((resolve, reject) => {
     const child = spawn(command, commandArgs, {
       cwd: root,
@@ -47,7 +58,7 @@ function startService(service, filter) {
     ["--yes", "pnpm@9.15.9", "--filter", filter, "run", "start"],
     {
       cwd: root,
-      env,
+      env: serviceEnv,
       shell: process.platform === "win32",
       stdio: ["ignore", "pipe", "pipe"],
     },
@@ -109,11 +120,15 @@ async function main() {
   write(`  Log:    ${logFile}`);
   write("");
 
-  log("stackpatch", "installing dependencies...");
-  await run("npx", ["--yes", "pnpm@9.15.9", "install"]);
+  if (!skipInstall && !fs.existsSync(path.join(root, "node_modules"))) {
+    log("stackpatch", "installing dependencies...");
+    await run("npx", ["--yes", "pnpm@9.15.9", "install"]);
+  }
 
-  log("stackpatch", "building packages...");
-  await run("npx", ["--yes", "pnpm@9.15.9", "build"]);
+  if (!skipBuild) {
+    log("stackpatch", "building packages...");
+    await run("npx", ["--yes", "pnpm@9.15.9", "build"]);
+  }
 
   children.push(startService("daemon", "@stackpatch/daemon"));
   children.push(startService("panel", "@stackpatch/api"));

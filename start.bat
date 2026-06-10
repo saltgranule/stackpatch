@@ -9,8 +9,8 @@ if errorlevel 1 (
 )
 
 echo.
-echo stackpatch - open http://localhost:23333 in your browser
+echo Starting stackpatch production...
 echo.
 
-node scripts\run-dev.mjs
+node scripts\run-prod.mjs
 pause

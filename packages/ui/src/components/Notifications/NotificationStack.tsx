@@ -3,7 +3,7 @@ import styles from "./NotificationStack.module.css";
 import type { Notification } from "./types";
 
 interface NotificationStackProps {
-  notifications: Notification[];
+  notifications: readonly Notification[];
   onDismiss: (id: string) => void;
 }
 
