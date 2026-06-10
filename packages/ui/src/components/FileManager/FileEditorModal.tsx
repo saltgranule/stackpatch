@@ -1,5 +1,7 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { fetchInstanceFileContent, saveInstanceFileContent } from "../../api/client";
+import { ConsoleCard } from "../ConsoleCard";
+import form from "../../styles/consoleForm.module.css";
 import styles from "./FileEditorModal.module.css";
 
 interface FileEditorModalProps {
@@ -50,19 +52,8 @@ export function FileEditorModal({
     };
   }, [instanceId, filePath]);
 
-  useEffect(() => {
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        onClose();
-      }
-    }
-
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [onClose]);
-
-  async function handleSave() {
-    if (!canWrite) return;
+  const handleSave = useCallback(async () => {
+    if (!canWrite || loading || saving) return;
 
     setSaving(true);
     setError(null);
@@ -75,57 +66,83 @@ export function FileEditorModal({
     } finally {
       setSaving(false);
     }
-  }
+  }, [canWrite, content, filePath, instanceId, loading, onClose, onSaved, saving]);
+
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        onClose();
+      }
+      if (canWrite && (event.ctrlKey || event.metaKey) && event.key === "s") {
+        event.preventDefault();
+        void handleSave();
+      }
+    }
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [canWrite, handleSave, onClose]);
+
+  const hint = canWrite
+    ? filePath
+    : `${filePath} · read-only`;
 
   return (
     <div className={styles.overlay} onClick={onClose}>
       <div
-        className={styles.modal}
+        className={styles.dialog}
         role="dialog"
         aria-modal="true"
         aria-labelledby="file-editor-title"
         onClick={(event) => event.stopPropagation()}
       >
-        <header className={styles.header}>
-          <div>
-            <h2 id="file-editor-title" className={styles.title}>
-              {fileName}
-            </h2>
-            <p className={styles.path}>{filePath}</p>
+        <ConsoleCard
+          className={styles.card}
+          tabLabel={<span id="file-editor-title">{fileName}</span>}
+          hint={hint}
+          elevated
+        >
+          <div className={styles.shell}>
+            {error && <p className={form.error}>{error}</p>}
+
+            {loading ? (
+              <p className={styles.state}>Loading file…</p>
+            ) : (
+              <div className={styles.editorPane}>
+                <textarea
+                  className={styles.editor}
+                  value={content}
+                  onChange={(event) => setContent(event.target.value)}
+                  readOnly={!canWrite}
+                  spellCheck={false}
+                  autoFocus
+                />
+              </div>
+            )}
+
+            <div className={`${form.actions} ${styles.actions}`}>
+              <button
+                type="button"
+                className={form.actionSecondary}
+                onClick={onClose}
+              >
+                Close
+              </button>
+              {canWrite ? (
+                <button
+                  type="button"
+                  className={form.actionPrimary}
+                  onClick={() => void handleSave()}
+                  disabled={loading || saving}
+                >
+                  {saving ? "Saving…" : "Save"}
+                </button>
+              ) : (
+                <span className={styles.readOnlyBadge}>View only</span>
+              )}
+            </div>
           </div>
-          <button type="button" className={styles.close} onClick={onClose}>
-            Close
-          </button>
-        </header>
-
-        {error && <p className={styles.error}>{error}</p>}
-
-        {loading ? (
-          <p className={styles.loading}>Loading file…</p>
-        ) : (
-          <textarea
-            className={styles.editor}
-            value={content}
-            onChange={(event) => setContent(event.target.value)}
-            readOnly={!canWrite}
-            spellCheck={false}
-          />
-        )}
-
-        <footer className={styles.footer}>
-          {canWrite ? (
-            <button
-              type="button"
-              className={styles.save}
-              onClick={() => void handleSave()}
-              disabled={loading || saving}
-            >
-              {saving ? "Saving…" : "Save"}
-            </button>
-          ) : (
-            <span className={styles.readOnly}>Read-only</span>
-          )}
-        </footer>
+        </ConsoleCard>
       </div>
     </div>
   );

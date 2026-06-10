@@ -10,10 +10,10 @@ import {
   unzipInstanceFile,
   uploadInstanceFiles,
 } from "../../api/client";
+import { MATERIAL_ICONS, MaterialIcon, type MaterialIconName } from "../../icons";
 import { Dropdown } from "../Dropdown/Dropdown";
 import { ScrollArea } from "../ScrollArea/ScrollArea";
 import { FileEditorModal } from "./FileEditorModal";
-import { DocumentIcon, FolderIcon } from "./FileIcons";
 import styles from "./FileManager.module.css";
 
 interface FileManagerProps {
@@ -57,14 +57,113 @@ function isZipFile(name: string): boolean {
   return name.toLowerCase().endsWith(".zip");
 }
 
-function FileTypeIcon({ entry }: { entry: FileEntry }) {
+function getFileTypeIcon(entry: FileEntry): MaterialIconName {
   if (entry.type === "directory") {
-    return <FolderIcon />;
+    return MATERIAL_ICONS.folder;
+  }
+  if (isZipFile(entry.name)) {
+    return MATERIAL_ICONS.folderZip;
   }
   if (isEditableTextFile(entry.name)) {
-    return <DocumentIcon />;
+    return MATERIAL_ICONS.description;
   }
-  return <span className={styles.iconSpacer} />;
+  return MATERIAL_ICONS.insertDriveFile;
+}
+
+interface RowActionButtonProps {
+  icon: MaterialIconName;
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+}
+
+function RowActionButton({ icon, label, onClick, disabled }: RowActionButtonProps) {
+  return (
+    <button
+      type="button"
+      className={styles.rowAction}
+      onClick={(event) => {
+        event.stopPropagation();
+        onClick();
+      }}
+      disabled={disabled}
+      aria-label={label}
+      title={label}
+    >
+      <MaterialIcon name={icon} size={18} />
+    </button>
+  );
+}
+
+interface FileRowActionsProps {
+  entry: FileEntry;
+  canWrite: boolean;
+  busy: boolean;
+  onDownload: (entry: FileEntry) => void;
+  onEdit: (entry: FileEntry) => void;
+  onRename: (entry: FileEntry) => void;
+  onDelete: (entry: FileEntry) => void;
+  onUnzip: (entry: FileEntry) => void;
+}
+
+function FileRowActions({
+  entry,
+  canWrite,
+  busy,
+  onDownload,
+  onEdit,
+  onRename,
+  onDelete,
+  onUnzip,
+}: FileRowActionsProps) {
+  const isDirectory = entry.type === "directory";
+  const isEditable = !isDirectory && isEditableTextFile(entry.name);
+  const isZip = !isDirectory && isZipFile(entry.name);
+
+  return (
+    <div className={styles.fileActions}>
+      {isEditable && (
+        <RowActionButton
+          icon={MATERIAL_ICONS.edit}
+          label="Edit"
+          onClick={() => onEdit(entry)}
+          disabled={busy}
+        />
+      )}
+      {!isDirectory && (
+        <RowActionButton
+          icon={MATERIAL_ICONS.download}
+          label="Download"
+          onClick={() => onDownload(entry)}
+          disabled={busy}
+        />
+      )}
+      {canWrite && (
+        <>
+          <RowActionButton
+            icon={MATERIAL_ICONS.driveFileRenameOutline}
+            label="Rename"
+            onClick={() => onRename(entry)}
+            disabled={busy}
+          />
+          {isZip && (
+            <RowActionButton
+              icon={MATERIAL_ICONS.unarchive}
+              label="Unzip"
+              onClick={() => onUnzip(entry)}
+              disabled={busy}
+            />
+          )}
+          <RowActionButton
+            icon={MATERIAL_ICONS.delete}
+            label="Delete"
+            onClick={() => onDelete(entry)}
+            disabled={busy}
+          />
+        </>
+      )}
+    </div>
+  );
 }
 
 export function FileManager({ instance, canWrite }: FileManagerProps) {
@@ -148,6 +247,11 @@ export function FileManager({ instance, canWrite }: FileManagerProps) {
     }
     if (isEditableTextFile(entry.name)) {
       setOpenEditor({ path: entry.path, name: entry.name });
+    }
+  }
+
+  function downloadEntry(entry: FileEntry) {
+    if (entry.type === "directory") {
       return;
     }
     window.location.assign(getInstanceFileDownloadUrl(instance.id, entry.path));
@@ -168,22 +272,37 @@ export function FileManager({ instance, canWrite }: FileManagerProps) {
     }
   }
 
-  async function handleDelete() {
-    if (!canDelete || !canWrite) return;
+  async function deletePaths(paths: string[], label: string) {
+    if (paths.length === 0 || !canWrite) return;
 
-    const confirmed = window.confirm(`Delete ${selectedPaths.length} item(s)? This cannot be undone.`);
+    const confirmed = window.confirm(
+      paths.length === 1
+        ? `Delete "${label}"? This cannot be undone.`
+        : `Delete ${paths.length} item(s)? This cannot be undone.`,
+    );
     if (!confirmed) return;
 
     setActionBusy(true);
     setError(null);
     try {
-      await deleteInstanceFiles(instance.id, selectedPaths);
+      await deleteInstanceFiles(instance.id, paths);
       await loadDirectory(currentPath);
     } catch (deleteError) {
       setError(deleteError instanceof Error ? deleteError.message : "Delete failed");
     } finally {
       setActionBusy(false);
     }
+  }
+
+  async function handleDelete() {
+    if (!canDelete || !canWrite) return;
+    const label =
+      selectedPaths.length === 1 ? (selectedEntries[0]?.name ?? "this item") : "selected items";
+    await deletePaths(selectedPaths, label);
+  }
+
+  async function handleDeleteEntry(entry: FileEntry) {
+    await deletePaths([entry.path], entry.name);
   }
 
   async function handleArchive() {
@@ -201,11 +320,8 @@ export function FileManager({ instance, canWrite }: FileManagerProps) {
     }
   }
 
-  async function handleUnzip() {
-    if (!canUnzip || !canWrite) return;
-
-    const zipPath = selectedPaths[0];
-    if (!zipPath) return;
+  async function unzipPath(zipPath: string) {
+    if (!canWrite) return;
 
     setActionBusy(true);
     setError(null);
@@ -219,12 +335,20 @@ export function FileManager({ instance, canWrite }: FileManagerProps) {
     }
   }
 
-  async function handleRename() {
-    if (!canRename || !canWrite) return;
+  async function handleUnzip() {
+    if (!canUnzip || !canWrite) return;
+    const zipPath = selectedPaths[0];
+    if (!zipPath) return;
+    await unzipPath(zipPath);
+  }
 
-    const entryPath = selectedPaths[0];
-    const entry = selectedEntries[0];
-    if (!entryPath || !entry) return;
+  async function handleUnzipEntry(entry: FileEntry) {
+    if (entry.type !== "file" || !isZipFile(entry.name)) return;
+    await unzipPath(entry.path);
+  }
+
+  async function renameEntry(entry: FileEntry) {
+    if (!canWrite) return;
 
     const newName = window.prompt(`Rename "${entry.name}" to:`, entry.name);
     if (!newName || newName.trim() === entry.name) return;
@@ -232,13 +356,20 @@ export function FileManager({ instance, canWrite }: FileManagerProps) {
     setActionBusy(true);
     setError(null);
     try {
-      await renameInstanceEntry(instance.id, entryPath, newName.trim());
+      await renameInstanceEntry(instance.id, entry.path, newName.trim());
       await loadDirectory(currentPath);
     } catch (renameError) {
       setError(renameError instanceof Error ? renameError.message : "Rename failed");
     } finally {
       setActionBusy(false);
     }
+  }
+
+  async function handleRename() {
+    if (!canRename || !canWrite) return;
+    const entry = selectedEntries[0];
+    if (!entry) return;
+    await renameEntry(entry);
   }
 
   async function handleCreate(type: "file" | "directory") {
@@ -356,33 +487,46 @@ export function FileManager({ instance, canWrite }: FileManagerProps) {
               <p className={styles.state}>Loading files…</p>
             ) : (
               <div className={styles.fileTable}>
-                {canWrite && entries.length > 0 && (
+                {(entries.length > 0 || canGoBack) && (
                   <div className={styles.fileHeaderRow}>
-                    <label className={styles.selectAll}>
-                      <input
-                        type="checkbox"
-                        className={styles.checkbox}
-                        checked={allSelected}
-                        onChange={toggleSelectAll}
-                      />
-                      <span className={styles.selectAllLabel}>Select all</span>
-                    </label>
+                    <div className={styles.rowLead}>
+                      {canWrite && entries.length > 0 ? (
+                        <label className={styles.selectAll}>
+                          <input
+                            type="checkbox"
+                            className={styles.checkbox}
+                            checked={allSelected}
+                            onChange={toggleSelectAll}
+                          />
+                          <span className={styles.selectAllLabel}>Select all</span>
+                        </label>
+                      ) : null}
+                    </div>
+                    <div className={styles.rowMeta}>
+                      <span className={`${styles.fileMeta} ${styles.fileMetaHeader}`}>Size</span>
+                      <span className={`${styles.fileMeta} ${styles.fileMetaHeader}`}>Modified</span>
+                    </div>
+                    <div className={styles.rowActions} aria-hidden />
                   </div>
                 )}
 
                 {canGoBack && (
                   <div className={styles.fileRow}>
-                    {canWrite ? <span className={styles.iconSpacer} /> : null}
-                    <button
-                      type="button"
-                      className={styles.fileName}
-                      onClick={() => void loadDirectory(parentPath)}
-                    >
-                      <FolderIcon />
-                      <span>..</span>
-                    </button>
-                    <span className={styles.fileMeta} />
-                    <span className={styles.fileMeta} />
+                    <div className={styles.rowLead}>
+                      <button
+                        type="button"
+                        className={styles.fileName}
+                        onClick={() => void loadDirectory(parentPath)}
+                      >
+                        <MaterialIcon name={MATERIAL_ICONS.folderOpen} className={styles.fileTypeIcon} />
+                        <span>..</span>
+                      </button>
+                    </div>
+                    <div className={styles.rowMeta}>
+                      <span className={styles.fileMeta} />
+                      <span className={styles.fileMeta} />
+                    </div>
+                    <div className={styles.rowActions} aria-hidden />
                   </div>
                 )}
 
@@ -398,29 +542,46 @@ export function FileManager({ instance, canWrite }: FileManagerProps) {
                         key={entry.path}
                         className={`${styles.fileRow} ${isSelected ? styles.fileRowSelected : ""}`}
                       >
-                        {canWrite ? (
-                          <input
-                            type="checkbox"
-                            className={styles.checkbox}
-                            checked={isSelected}
-                            onChange={() => toggleSelected(entry.path)}
-                            aria-label={`Select ${entry.name}`}
+                        <div className={styles.rowLead}>
+                          {canWrite ? (
+                            <input
+                              type="checkbox"
+                              className={styles.checkbox}
+                              checked={isSelected}
+                              onChange={() => toggleSelected(entry.path)}
+                              aria-label={`Select ${entry.name}`}
+                            />
+                          ) : null}
+                          <button
+                            type="button"
+                            className={styles.fileName}
+                            onClick={() => openEntry(entry)}
+                          >
+                            <MaterialIcon
+                              name={getFileTypeIcon(entry)}
+                              className={styles.fileTypeIcon}
+                            />
+                            <span>{entry.name}</span>
+                          </button>
+                        </div>
+                        <div className={styles.rowMeta}>
+                          <span className={styles.fileMeta}>{formatSize(entry.size)}</span>
+                          <span className={styles.fileMeta}>
+                            {new Date(entry.modifiedAt).toLocaleString()}
+                          </span>
+                        </div>
+                        <div className={styles.rowActions}>
+                          <FileRowActions
+                            entry={entry}
+                            canWrite={canWrite}
+                            busy={actionBusy}
+                            onDownload={downloadEntry}
+                            onEdit={(item) => setOpenEditor({ path: item.path, name: item.name })}
+                            onRename={(item) => void renameEntry(item)}
+                            onDelete={(item) => void handleDeleteEntry(item)}
+                            onUnzip={(item) => void handleUnzipEntry(item)}
                           />
-                        ) : (
-                          <span className={styles.iconSpacer} />
-                        )}
-                        <button
-                          type="button"
-                          className={styles.fileName}
-                          onClick={() => openEntry(entry)}
-                        >
-                          <FileTypeIcon entry={entry} />
-                          <span>{entry.name}</span>
-                        </button>
-                        <span className={styles.fileMeta}>{formatSize(entry.size)}</span>
-                        <span className={styles.fileMeta}>
-                          {new Date(entry.modifiedAt).toLocaleString()}
-                        </span>
+                        </div>
                       </div>
                     );
                   })

@@ -1,4 +1,5 @@
 import type { HealthResponse, Instance } from "@stackpatch/shared";
+import { MATERIAL_ICONS, MaterialIcon } from "../../icons";
 import styles from "./TopBar.module.css";
 
 export type GlobalNavItem = "overview" | "instances" | "logs" | "users" | "settings";
@@ -111,6 +112,7 @@ export function TopBar(props: TopBarProps) {
 
       <div className={styles.right}>
         <button type="button" className={styles.user} onClick={onLogout} title={`Sign out (${username})`}>
+          <MaterialIcon name={MATERIAL_ICONS.accountCircle} size={20} className={styles.userIcon} />
           <span className={styles.userName}>{username}</span>
           <span className={styles.userNameShort}>Out</span>
         </button>

@@ -160,12 +160,43 @@
   flex-direction: column;
 }
 
-.fileHeaderRow {
+.fileHeaderRow,
+.fileRow {
   display: grid;
-  grid-template-columns: auto 1fr 80px 160px;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  column-gap: 16px;
+}
+
+.fileHeaderRow {
+  padding: 8px;
+}
+
+.rowLead {
+  grid-column: 1;
+  display: flex;
   align-items: center;
   gap: 12px;
-  padding: 8px;
+  min-width: 0;
+  justify-self: start;
+  width: 100%;
+}
+
+.rowMeta {
+  grid-column: 2;
+  display: grid;
+  grid-template-columns: 88px 180px;
+  column-gap: 32px;
+  align-items: center;
+  justify-items: center;
+}
+
+.rowActions {
+  grid-column: 3;
+  display: flex;
+  justify-content: flex-end;
+  justify-self: end;
+  min-width: 0;
 }
 
 .selectAll {
@@ -173,6 +204,7 @@
   align-items: center;
   gap: 8px;
   cursor: pointer;
+  min-width: 0;
 }
 
 .selectAllLabel {
@@ -182,10 +214,6 @@
 }
 
 .fileRow {
-  display: grid;
-  grid-template-columns: auto 1fr 80px 160px;
-  align-items: center;
-  gap: 12px;
   padding: 10px 8px;
   border-radius: 6px;
 }
@@ -231,20 +259,51 @@
   cursor: not-allowed;
 }
 
-.iconSpacer {
-  width: 16px;
+.fileTypeIcon {
   flex-shrink: 0;
+  color: var(--color-console-muted);
+}
+
+.fileActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+  min-width: 0;
+}
+
+.rowAction {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  color: var(--color-console-muted);
+  background: transparent;
+  transition: color 0.15s, background 0.15s;
+}
+
+.rowAction:hover:not(:disabled) {
+  color: var(--color-console-text);
+  background: color-mix(in srgb, var(--color-console-text) 10%, var(--color-console-bg));
+}
+
+.rowAction:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .fileName {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex: 1;
+  min-width: 0;
   text-align: left;
   font-size: 13px;
   font-weight: 600;
   color: var(--color-console-text);
-  min-width: 0;
 }
 
 .fileName span {
@@ -260,6 +319,13 @@
 .fileMeta {
   font-size: 12px;
   color: var(--color-console-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fileMetaHeader {
+  font-weight: 600;
 }
 
 .hiddenInput {
@@ -275,12 +341,16 @@
     padding: 12px;
   }
 
+  .fileHeaderRow,
   .fileRow {
-    grid-template-columns: auto 1fr;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .fileRow {
     padding: 8px 6px;
   }
 
-  .fileMeta {
+  .rowMeta {
     display: none;
   }
 }

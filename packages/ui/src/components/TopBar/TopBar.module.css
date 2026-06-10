@@ -91,12 +91,19 @@
 }
 
 .user {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-weight: 600;
   font-size: 13px;
   color: var(--color-console-muted);
   padding: 6px 10px;
   border-radius: 6px;
   transition: background 0.15s, color 0.15s;
+}
+
+.userIcon {
+  flex-shrink: 0;
 }
 
 .user:hover {
