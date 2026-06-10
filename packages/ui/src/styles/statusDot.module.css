@@ -1,0 +1,29 @@
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.running,
+.daemonOnline {
+  background: var(--color-success);
+}
+
+.stopped,
+.daemonOffline {
+  background: var(--color-console-muted);
+}
+
+.daemonOffline {
+  opacity: 0.5;
+}
+
+.crashed {
+  background: var(--color-accent);
+}
+
+.starting,
+.stopping {
+  background: var(--color-accent);
+}

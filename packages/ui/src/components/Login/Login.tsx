@@ -1,8 +1,11 @@
 import { useState } from "react";
 import type { AuthUser } from "@stackpatch/shared";
 import { login } from "../../api/client";
-import { BrandLogo } from "../BrandLogo/BrandLogo";
+import form from "../../styles/consoleForm.module.css";
+import { ConsoleCard, ConsoleTabLabel } from "../ConsoleCard";
 import styles from "./Login.module.css";
+
+const BRAND_BANNER_SRC = "/assets/1000x3000.png";
 
 interface LoginProps {
   onLogin: (user: AuthUser) => void;
@@ -31,35 +34,47 @@ export function Login({ onLogin }: LoginProps) {
 
   return (
     <div className={styles.page}>
-      <p className={styles.defaultHint}>Default: admin / changeme</p>
-      <form className={styles.card} onSubmit={handleSubmit}>
-        <BrandLogo size="lg" align="left" />
+      <div className={styles.content}>
+        <img src={BRAND_BANNER_SRC} alt="stackpatch" className={styles.brandBanner} />
 
-        <input
-          className={styles.input}
-          value={username}
-          onChange={(event) => setUsername(event.target.value)}
-          placeholder="Username"
-          autoComplete="username"
-          required
-        />
+        <ConsoleCard
+          tabLabel={<ConsoleTabLabel dot="running">sign in</ConsoleTabLabel>}
+          hint="Default: admin / changeme"
+        >
+          <form className={form.form} onSubmit={handleSubmit}>
+            <label className={form.field}>
+              <span className={form.fieldLabel}>Username</span>
+              <input
+                value={username}
+                onChange={(event) => setUsername(event.target.value)}
+                placeholder="admin"
+                autoComplete="username"
+                required
+              />
+            </label>
 
-        <input
-          className={styles.input}
-          type="password"
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-          placeholder="Password"
-          autoComplete="current-password"
-          required
-        />
+            <label className={form.field}>
+              <span className={form.fieldLabel}>Password</span>
+              <input
+                type="password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                placeholder="••••••••"
+                autoComplete="current-password"
+                required
+              />
+            </label>
 
-        {error && <p className={styles.error}>{error}</p>}
+            {error && <p className={`${form.feedback} ${form.error}`}>{error}</p>}
 
-        <button type="submit" className={styles.button} disabled={submitting}>
-          {submitting ? "Signing In…" : "Sign In"}
-        </button>
-      </form>
+            <div className={form.actions}>
+              <button type="submit" className={form.actionPrimary} disabled={submitting}>
+                {submitting ? "Signing In…" : "Sign In"}
+              </button>
+            </div>
+          </form>
+        </ConsoleCard>
+      </div>
     </div>
   );
 }

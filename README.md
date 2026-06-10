@@ -2,6 +2,7 @@
 
 A lightweight open source web-based server panel for hosting game and application servers on Windows, with Linux support coming.
 
+![stackpatch](assets/1000x3000.png)
 ![stackpatch](assets/1440p2.png)
 
 ## why does stackpatch exist?
