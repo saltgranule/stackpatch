@@ -82,7 +82,7 @@ async function main() {
   process.on("SIGTERM", shutdown);
 
   await app.listen({ host: config.host, port: panelPort });
-  console.log(`[${APP_NAME}] panel ready on http://127.0.0.1:${panelPort}`);
+  console.log(`[${APP_NAME}] panel ready on http://localhost:${panelPort}`);
   app.log.info(`${APP_NAME} panel listening on http://${config.host}:${panelPort}`);
 }
 

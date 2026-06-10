@@ -8,5 +8,9 @@ if errorlevel 1 (
   exit /b 1
 )
 
+echo.
+echo stackpatch - open http://localhost:23333 in your browser
+echo.
+
 node scripts\run-dev.mjs
 pause

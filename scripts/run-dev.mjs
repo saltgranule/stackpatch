@@ -111,7 +111,7 @@ async function main() {
 
   write("");
   write("stackpatch dev");
-  write(`  Panel:  http://127.0.0.1:${ports.panelPort}`);
+  write(`  Panel:  http://localhost:${ports.panelPort}`);
   write(`  Daemon: 127.0.0.1:${ports.daemonPort}`);
   write(`  Log:    ${logFile}`);
   write("  Press Ctrl+C to stop.");

@@ -40,10 +40,9 @@ pnpm run dev
 
 Or run `start.bat`, which handles everything and should work out of the box.
 
-Open `http://localhost:23333` in your browser.
-the default credentials for first time log-in:
-`admin` - username
-`changeme` - password
+Open [http://localhost:23333](http://localhost:23333) in your browser.
+
+Default login: `admin` / `changeme` (change after first sign-in).
 
 ---
 
@@ -78,7 +77,7 @@ storage limiting per instance, essentially the same as above, just limiting the 
 
 | Setting | Default | Notes |
 |---|---|---|
-| Panel port | `23333` | Configurable via `system_settings` |
+| Panel port | `23333` | Open at `http://localhost:23333`; configurable via `system_settings` |
 | Daemon IPC port | `24444` | Configurable via `system_settings` or env |
 | Data directory | `.data/` | SQLite database and daemon heartbeat file + instances |
 

@@ -4,7 +4,7 @@ import { resolveDataDir } from "@stackpatch/shared";
 const dataDir = resolveDataDir();
 
 export const config = {
-  host: process.env.STACKPATCH_HOST ?? "127.0.0.1",
+  host: process.env.STACKPATCH_HOST ?? "0.0.0.0",
   dataDir,
   dbPath: path.join(dataDir, "stackpatch.db"),
   daemonSocketPath:
