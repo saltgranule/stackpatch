@@ -1,7 +1,5 @@
 .page {
   padding: 24px;
-  flex: 1;
-  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -180,16 +178,32 @@
   align-items: stretch;
   flex-shrink: 0;
   min-width: 0;
+  width: 100%;
+}
+
+@media (max-width: 1120px) {
+  .cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 768px) {
   .page {
     padding: 16px;
     gap: 12px;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .consoleStack {
+    flex: 0 0 auto;
+    height: clamp(200px, 42dvh, 360px);
+    min-height: 0;
   }
 
   .terminalWrap {
-    min-height: 240px;
+    min-height: 0;
+    height: 100%;
   }
 
   .commandBar {
@@ -199,14 +213,34 @@
   .submit {
     width: 100%;
   }
+}
 
+@media (max-width: 560px) {
   .cards {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
   }
 }
 
-@media (max-width: 480px) {
+/* Short mobile viewports: keep console readable and scroll cards horizontally. */
+@media (max-width: 768px) and (max-height: 700px) {
+  .consoleStack {
+    height: clamp(160px, 36dvh, 260px);
+  }
+
   .cards {
-    grid-template-columns: minmax(0, 1fr);
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+    padding-bottom: 2px;
+    grid-template-columns: unset;
+  }
+
+  .cards > * {
+    flex: 0 0 min(78vw, 272px);
+    scroll-snap-align: start;
+    min-width: 0;
   }
 }

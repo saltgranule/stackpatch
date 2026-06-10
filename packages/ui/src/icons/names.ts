@@ -12,6 +12,8 @@ export const MATERIAL_ICONS = {
   close: "close",
   save: "save",
   accountCircle: "account_circle",
+  arrowForward: "arrow_forward",
+  openInNew: "open_in_new",
 } as const;
 
 export type MaterialIconName = (typeof MATERIAL_ICONS)[keyof typeof MATERIAL_ICONS];

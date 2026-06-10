@@ -1,16 +1,37 @@
 .root {
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
   scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+
+.static {
+  flex: 0 0 auto;
+  min-height: auto;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+
+.vertical {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.horizontal {
+  overflow-y: hidden;
+  overflow-x: auto;
 }
 
 .page {
   scrollbar-color: color-mix(in srgb, var(--color-text-muted) 35%, transparent) transparent;
 }
 
-.page::-webkit-scrollbar {
+.page.vertical::-webkit-scrollbar {
   width: 6px;
+}
+
+.page.horizontal::-webkit-scrollbar {
+  height: 6px;
 }
 
 .page::-webkit-scrollbar-track {
@@ -30,8 +51,12 @@
   scrollbar-color: color-mix(in srgb, var(--color-console-muted) 40%, transparent) transparent;
 }
 
-.console::-webkit-scrollbar {
+.console.vertical::-webkit-scrollbar {
   width: 6px;
+}
+
+.console.horizontal::-webkit-scrollbar {
+  height: 6px;
 }
 
 .console::-webkit-scrollbar-track {

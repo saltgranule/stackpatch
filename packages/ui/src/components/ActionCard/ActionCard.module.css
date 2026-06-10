@@ -7,10 +7,14 @@
   gap: 8px;
   flex: 1;
   min-width: 0;
+  width: 100%;
 }
 
 .action {
   margin-top: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   padding: 8px 14px;
   border-radius: 8px;
   background: var(--color-accent);
@@ -18,11 +22,20 @@
   font-family: "Poppins", system-ui, sans-serif;
   font-weight: 600;
   font-size: 13px;
+  text-decoration: none;
   transition: background 0.15s;
 }
 
 .action:hover {
   background: var(--color-accent-hover);
+}
+
+.actionLabel {
+  line-height: 1;
+}
+
+.actionIcon {
+  opacity: 0.92;
 }
 
 .title {
@@ -35,4 +48,26 @@
   font-size: 12px;
   color: var(--color-console-muted);
   line-height: 1.45;
+}
+
+@media (max-width: 1120px) {
+  .action {
+    align-self: stretch;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 560px) {
+  .card {
+    padding: 16px;
+    gap: 6px;
+  }
+
+  .title {
+    font-size: 15px;
+  }
+
+  .action {
+    padding: 10px 14px;
+  }
 }

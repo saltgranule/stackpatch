@@ -7,6 +7,7 @@ import {
 import { downloadAuthenticatedFile, getConsoleLogDownloadUrl } from "../../api/client";
 import { parseAnsi } from "../../lib/ansi";
 import { appendConsoleLine } from "../../lib/console-log";
+import { GitHubIcon } from "../../icons";
 import { ActionCard } from "../ActionCard/ActionCard";
 import { ScrollArea } from "../ScrollArea/ScrollArea";
 import styles from "./Console.module.css";
@@ -234,7 +235,7 @@ export function Console({
   }
 
   return (
-    <div className={styles.page}>
+    <ScrollArea variant="page" className={styles.page}>
       <div className={styles.consoleStack}>
         <div className={styles.terminalWrap}>
           <div className={styles.tabSlot}>
@@ -302,7 +303,7 @@ export function Console({
         </form>
       </div>
 
-      <div className={styles.cards}>
+      <ScrollArea variant="page" fill={false} orientation="horizontal" className={styles.cards}>
         <ActionCard
           title="Instance Settings"
           hint="Startup command, working directory, and instance deletion."
@@ -321,7 +322,14 @@ export function Console({
           actionLabel="Open Users"
           onAction={onOpenUsers}
         />
-      </div>
-    </div>
+        <ActionCard
+          title="GitHub"
+          hint="Source code, issues, and releases for stackpatch."
+          actionLabel="View Repository"
+          href="https://github.com/saltgranule/stackpatch"
+          leadingIcon={<GitHubIcon size={18} />}
+        />
+      </ScrollArea>
+    </ScrollArea>
   );
 }
