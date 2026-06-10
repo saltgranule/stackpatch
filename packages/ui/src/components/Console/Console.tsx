@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { Instance, LogLine } from "@stackpatch/shared";
 import {
   createConsoleSystemLine,
+  getJavaRuntimeResource,
   isConsoleOutputLine,
 } from "@stackpatch/shared";
 import { downloadAuthenticatedFile, getConsoleLogDownloadUrl } from "../../api/client";
@@ -212,6 +213,8 @@ export function Console({
 
   const inputDisabled = !canAcceptInput;
 
+  const javaRuntime = getJavaRuntimeResource(instance.applicationType);
+
   const inputPlaceholder = !canSendInput
     ? "Read-only access"
     : !connected
@@ -236,7 +239,8 @@ export function Console({
 
   return (
     <ScrollArea variant="page" className={styles.page}>
-      <div className={styles.consoleStack}>
+      <div className={styles.consoleViewport}>
+        <div className={styles.consoleStack}>
         <div className={styles.terminalWrap}>
           <div className={styles.tabSlot}>
             <button
@@ -301,35 +305,49 @@ export function Console({
             Enter
           </button>
         </form>
+        </div>
       </div>
 
-      <ScrollArea variant="page" fill={false} orientation="horizontal" className={styles.cards}>
-        <ActionCard
-          title="Instance Settings"
-          hint="Startup command, working directory, and instance deletion."
-          actionLabel="Open Settings"
-          onAction={onOpenSettings}
-        />
-        <ActionCard
-          title="Instance Files"
-          hint="Browse, upload, edit text files, and download."
-          actionLabel="Open Files"
-          onAction={onOpenFiles}
-        />
-        <ActionCard
-          title="User Management"
-          hint="Manage panel accounts and instance access."
-          actionLabel="Open Users"
-          onAction={onOpenUsers}
-        />
-        <ActionCard
-          title="GitHub"
-          hint="Source code, issues, and releases for stackpatch."
-          actionLabel="View Repository"
-          href="https://github.com/saltgranule/stackpatch"
-          leadingIcon={<GitHubIcon size={18} />}
-        />
-      </ScrollArea>
+      <div className={styles.cardRows}>
+        <ScrollArea variant="page" fill={false} orientation="horizontal" className={styles.cards}>
+          <ActionCard
+            title="Instance Settings"
+            hint="Startup command, working directory, and instance deletion."
+            actionLabel="Open Settings"
+            onAction={onOpenSettings}
+          />
+          <ActionCard
+            title="Instance Files"
+            hint="Browse, upload, edit text files, and download."
+            actionLabel="Open Files"
+            onAction={onOpenFiles}
+          />
+          <ActionCard
+            title="User Management"
+            hint="Manage panel accounts and instance access."
+            actionLabel="Open Users"
+            onAction={onOpenUsers}
+          />
+          <ActionCard
+            title="GitHub"
+            hint="Source code, issues, and releases for stackpatch."
+            actionLabel="View Repository"
+            href="https://github.com/saltgranule/stackpatch"
+            leadingIcon={<GitHubIcon size={18} />}
+          />
+        </ScrollArea>
+
+        {javaRuntime && (
+          <ScrollArea variant="page" fill={false} orientation="horizontal" className={styles.cards}>
+            <ActionCard
+              title="Java Runtime"
+              hint={javaRuntime.hint}
+              actionLabel={javaRuntime.title}
+              href={javaRuntime.url}
+            />
+          </ScrollArea>
+        )}
+      </div>
     </ScrollArea>
   );
 }

@@ -4,7 +4,7 @@ import {
   DEFAULT_STOP_COMMAND,
   formatStartupCommand,
   getApplicationTypeDefinition,
-  isApplicationType,
+  normalizeApplicationType,
 } from "@stackpatch/shared";
 import { getDatabase } from "./database.js";
 
@@ -28,7 +28,7 @@ interface InstanceRow {
 }
 
 function mapApplicationType(value: string): ApplicationType {
-  return isApplicationType(value) ? value : DEFAULT_APPLICATION_TYPE;
+  return normalizeApplicationType(value);
 }
 
 function mapRow(row: InstanceRow): Instance {

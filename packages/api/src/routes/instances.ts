@@ -1,6 +1,7 @@
 import type { FastifyInstance, FastifyReply } from "fastify";
 import { v4 as uuid } from "uuid";
 import {
+  DEFAULT_APPLICATION_TYPE,
   getApplicationTypeDefinition,
   isApplicationType,
   type ApplicationType,
@@ -148,7 +149,7 @@ export async function instanceRoutes(app: FastifyInstance): Promise<void> {
         startupCommand.trim(),
         resolvedWorkingDirectory,
       );
-      const resolvedType = parsedApplicationType ?? "minecraft";
+      const resolvedType = parsedApplicationType ?? DEFAULT_APPLICATION_TYPE;
 
       let memoryLimitMb: number | null | undefined;
       let cpuLimitPercent: number | null | undefined;

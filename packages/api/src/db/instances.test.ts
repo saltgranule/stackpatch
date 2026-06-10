@@ -22,7 +22,7 @@ describe("instances repository", () => {
 
     createInstance("test-id", {
       name: "Minecraft",
-      applicationType: "minecraft",
+      applicationType: "minecraft:paper",
       executablePath: "C:\\java\\bin\\java.exe",
       arguments: "-jar server.jar",
       workingDirectory: path.join(tempDir, "instances", "minecraft"),
@@ -31,7 +31,7 @@ describe("instances repository", () => {
     const instances = listInstances();
     expect(instances).toHaveLength(1);
     expect(instances[0]?.name).toBe("Minecraft");
-    expect(instances[0]?.applicationType).toBe("minecraft");
+    expect(instances[0]?.applicationType).toBe("minecraft:paper");
     expect(instances[0]?.startupCommand).toBe("C:\\java\\bin\\java.exe -jar server.jar");
     expect(instances[0]?.stopCommand).toBe("stop");
     expect(instances[0]?.status).toBe("stopped");

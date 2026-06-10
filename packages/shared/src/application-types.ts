@@ -1,12 +1,39 @@
-export type ApplicationType = "python" | "javascript" | "go" | "minecraft" | "generic";
+export type ApplicationType =
+  | "python"
+  | "nodejs"
+  | "java"
+  | "generic"
+  | "minecraft:vanilla"
+  | "minecraft:paper"
+  | "minecraft:folia"
+  | "minecraft:fabric"
+  | "minecraft:forge"
+  | "minecraft:neoforge"
+  | "minecraft:purpur"
+  | "minecraft:bungeecord"
+  | "minecraft:velocity";
 
 export const APPLICATION_TYPES: ApplicationType[] = [
+  "minecraft:paper",
+  "minecraft:vanilla",
+  "minecraft:fabric",
+  "minecraft:forge",
+  "minecraft:neoforge",
+  "minecraft:folia",
+  "minecraft:purpur",
+  "minecraft:bungeecord",
+  "minecraft:velocity",
   "python",
-  "javascript",
-  "go",
-  "minecraft",
+  "nodejs",
+  "java",
   "generic",
 ];
+
+const LEGACY_APPLICATION_TYPE_MAP: Record<string, ApplicationType> = {
+  javascript: "nodejs",
+  go: "generic",
+  minecraft: "minecraft:paper",
+};
 
 export interface ApplicationTypeDefinition {
   label: string;
@@ -21,6 +48,87 @@ export interface ApplicationTypeDefinition {
 }
 
 export const APPLICATION_TYPE_DEFINITIONS: Record<ApplicationType, ApplicationTypeDefinition> = {
+  "minecraft:vanilla": {
+    label: "Minecraft: Vanilla",
+    defaultStartupCommand: "java -Xmx2G -jar server.jar nogui",
+    startupPlaceholder: "java -Xmx2G -jar server.jar nogui",
+    defaultStopCommand: "stop",
+    usesStdinStop: true,
+    gracefulStopTimeoutMs: 30_000,
+    forceStopTimeoutMs: 3_000,
+  },
+  "minecraft:paper": {
+    label: "Minecraft: Paper",
+    defaultStartupCommand: "java -Xmx2G -jar paper.jar nogui",
+    startupPlaceholder: "java -Xmx2G -jar paper.jar nogui",
+    defaultStopCommand: "stop",
+    usesStdinStop: true,
+    gracefulStopTimeoutMs: 30_000,
+    forceStopTimeoutMs: 3_000,
+  },
+  "minecraft:fabric": {
+    label: "Minecraft: Fabric",
+    defaultStartupCommand: "java -Xmx2G -jar fabric.jar nogui",
+    startupPlaceholder: "java -Xmx2G -jar fabric.jar nogui",
+    defaultStopCommand: "stop",
+    usesStdinStop: true,
+    gracefulStopTimeoutMs: 30_000,
+    forceStopTimeoutMs: 3_000,
+  },
+  "minecraft:forge": {
+    label: "Minecraft: Forge",
+    defaultStartupCommand: "run.bat",
+    startupPlaceholder: "run.bat",
+    defaultStopCommand: "stop",
+    usesStdinStop: true,
+    gracefulStopTimeoutMs: 90_000,
+    forceStopTimeoutMs: 3_000,
+  },
+  "minecraft:neoforge": {
+    label: "Minecraft: NeoForge",
+    defaultStartupCommand: "run.bat",
+    startupPlaceholder: "run.bat",
+    defaultStopCommand: "stop",
+    usesStdinStop: true,
+    gracefulStopTimeoutMs: 90_000,
+    forceStopTimeoutMs: 3_000,
+  },
+  "minecraft:folia": {
+    label: "Minecraft: Folia",
+    defaultStartupCommand: "java -Xmx2G -jar folia.jar nogui",
+    startupPlaceholder: "java -Xmx2G -jar folia.jar nogui",
+    defaultStopCommand: "stop",
+    usesStdinStop: true,
+    gracefulStopTimeoutMs: 30_000,
+    forceStopTimeoutMs: 3_000,
+  },
+  "minecraft:purpur": {
+    label: "Minecraft: Purpur",
+    defaultStartupCommand: "java -Xmx2G -jar purpur.jar nogui",
+    startupPlaceholder: "java -Xmx2G -jar purpur.jar nogui",
+    defaultStopCommand: "stop",
+    usesStdinStop: true,
+    gracefulStopTimeoutMs: 30_000,
+    forceStopTimeoutMs: 3_000,
+  },
+  "minecraft:bungeecord": {
+    label: "Minecraft: BungeeCord",
+    defaultStartupCommand: "java -Xmx512M -jar bungeecord.jar",
+    startupPlaceholder: "java -Xmx512M -jar bungeecord.jar",
+    defaultStopCommand: "end",
+    usesStdinStop: true,
+    gracefulStopTimeoutMs: 15_000,
+    forceStopTimeoutMs: 3_000,
+  },
+  "minecraft:velocity": {
+    label: "Minecraft: Velocity",
+    defaultStartupCommand: "java -Xmx512M -jar velocity.jar",
+    startupPlaceholder: "java -Xmx512M -jar velocity.jar",
+    defaultStopCommand: "shutdown",
+    usesStdinStop: true,
+    gracefulStopTimeoutMs: 15_000,
+    forceStopTimeoutMs: 3_000,
+  },
   python: {
     label: "Python",
     defaultStartupCommand: "python main.py",
@@ -30,8 +138,8 @@ export const APPLICATION_TYPE_DEFINITIONS: Record<ApplicationType, ApplicationTy
     gracefulStopTimeoutMs: 2_000,
     forceStopTimeoutMs: 1_000,
   },
-  javascript: {
-    label: "JavaScript",
+  nodejs: {
+    label: "Node.js",
     defaultStartupCommand: "node index.js",
     startupPlaceholder: "node index.js",
     defaultStopCommand: "",
@@ -39,23 +147,14 @@ export const APPLICATION_TYPE_DEFINITIONS: Record<ApplicationType, ApplicationTy
     gracefulStopTimeoutMs: 2_000,
     forceStopTimeoutMs: 1_000,
   },
-  go: {
-    label: "Go",
-    defaultStartupCommand: "go run .",
-    startupPlaceholder: "go run .",
+  java: {
+    label: "Java",
+    defaultStartupCommand: "java -jar app.jar",
+    startupPlaceholder: "java -jar app.jar",
     defaultStopCommand: "",
     usesStdinStop: false,
-    gracefulStopTimeoutMs: 2_000,
-    forceStopTimeoutMs: 1_000,
-  },
-  minecraft: {
-    label: "Minecraft Server",
-    defaultStartupCommand: "java -jar server.jar nogui",
-    startupPlaceholder: "java -jar server.jar nogui",
-    defaultStopCommand: "stop",
-    usesStdinStop: true,
-    gracefulStopTimeoutMs: 90_000,
-    forceStopTimeoutMs: 3_000,
+    gracefulStopTimeoutMs: 5_000,
+    forceStopTimeoutMs: 2_000,
   },
   generic: {
     label: "Generic Console Application",
@@ -68,10 +167,22 @@ export const APPLICATION_TYPE_DEFINITIONS: Record<ApplicationType, ApplicationTy
   },
 };
 
-export const DEFAULT_APPLICATION_TYPE: ApplicationType = "minecraft";
+export const DEFAULT_APPLICATION_TYPE: ApplicationType = "minecraft:paper";
 
 export function isApplicationType(value: string): value is ApplicationType {
   return APPLICATION_TYPES.includes(value as ApplicationType);
+}
+
+export function isMinecraftApplicationType(type: ApplicationType | string): boolean {
+  return type.startsWith("minecraft:");
+}
+
+export function normalizeApplicationType(value: string): ApplicationType {
+  if (isApplicationType(value)) {
+    return value;
+  }
+
+  return LEGACY_APPLICATION_TYPE_MAP[value] ?? DEFAULT_APPLICATION_TYPE;
 }
 
 export function getApplicationTypeDefinition(type: ApplicationType): ApplicationTypeDefinition {
@@ -114,6 +225,27 @@ export interface RuntimeInstallDefinition {
   command: string;
 }
 
+export interface RuntimeResourceLink {
+  title: string;
+  hint: string;
+  url: string;
+}
+
+/** Temurin JDK 25 — recommended runtime for modern Minecraft servers. */
+export const MINECRAFT_JAVA_SDK_URL = "https://adoptium.net/temurin/releases/?version=25";
+
+export function getJavaRuntimeResource(type: ApplicationType): RuntimeResourceLink | null {
+  if (type !== "java" && !isMinecraftApplicationType(type)) {
+    return null;
+  }
+
+  return {
+    title: "Download Java SDK 25",
+    hint: "Modern Minecraft needs a recent Java runtime. Open Temurin JDK 25 and choose your platform.",
+    url: MINECRAFT_JAVA_SDK_URL,
+  };
+}
+
 export function getRuntimeInstallDefinition(
   type: ApplicationType,
 ): RuntimeInstallDefinition | null {
@@ -125,18 +257,12 @@ export function getRuntimeInstallDefinition(
         command:
           "winget install Python.Python.3.12 --accept-package-agreements --accept-source-agreements",
       };
-    case "go":
+    case "nodejs":
       return {
-        title: "Install Go",
-        hint: "Install the Go toolchain on this machine using winget.",
-        command: "winget install GoLang.Go --accept-package-agreements --accept-source-agreements",
-      };
-    case "minecraft":
-      return {
-        title: "Install Java",
-        hint: "Install the Java runtime required for this Minecraft server.",
+        title: "Install Node.js",
+        hint: "Install the Node.js runtime on this machine using winget.",
         command:
-          "winget install EclipseAdoptium.Temurin.21.JRE --accept-package-agreements --accept-source-agreements",
+          "winget install OpenJS.NodeJS.LTS --accept-package-agreements --accept-source-agreements",
       };
     default:
       return null;
@@ -154,4 +280,8 @@ export function getMaxStopRequestTimeoutMs(): number {
     );
   }
   return max + 5_000;
+}
+
+export function applicationTypeCheckConstraintSql(): string {
+  return APPLICATION_TYPES.map((type) => `'${type}'`).join(", ");
 }

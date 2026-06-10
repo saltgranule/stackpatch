@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { fileURLToPath } from "node:url";
-import { DEFAULT_DAEMON_IPC_PORT, DEFAULT_PANEL_PORT, parseLegacyCronIntervalHours } from "@stackpatch/shared";
+import { DEFAULT_DAEMON_IPC_PORT, DEFAULT_PANEL_PORT, applicationTypeCheckConstraintSql, parseLegacyCronIntervalHours } from "@stackpatch/shared";
 import { config } from "../config.js";
 
 let db: DatabaseSync | null = null;
@@ -77,6 +77,7 @@ function migrate(database: DatabaseSync): void {
 
   migrateInstanceStoppingStatus(database);
   migrateApplicationTypeGeneric(database);
+  migrateApplicationTypeMinecraft(database);
   migrateAuditLogs(database);
   migrateRemoveOperatorRole(database);
   migrateInstanceSchedules(database);
@@ -267,6 +268,68 @@ function migrateApplicationTypeGeneric(database: DatabaseSync): void {
 
     DROP TABLE instances;
     ALTER TABLE instances__generic_migration RENAME TO instances;
+  `);
+  database.exec("PRAGMA foreign_keys = ON");
+}
+
+function migrateApplicationTypeMinecraft(database: DatabaseSync): void {
+  const table = database
+    .prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'instances'")
+    .get() as { sql?: string } | undefined;
+
+  const sql = table?.sql ?? "";
+  if (!sql.includes("application_type") || sql.includes("'minecraft:paper'")) {
+    return;
+  }
+
+  const allowedTypes = applicationTypeCheckConstraintSql();
+  const instanceColumns = database.prepare("PRAGMA table_info(instances)").all() as Array<{
+    name: string;
+  }>;
+  const cpuLimitPercentSelect = instanceColumns.some((column) => column.name === "cpu_limit_percent")
+    ? "cpu_limit_percent"
+    : "NULL AS cpu_limit_percent";
+
+  database.exec("PRAGMA foreign_keys = OFF");
+  database.exec(`
+    CREATE TABLE instances__minecraft_types_migration (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      executable_path TEXT NOT NULL,
+      arguments TEXT NOT NULL DEFAULT '',
+      working_directory TEXT NOT NULL,
+      memory_limit_mb INTEGER,
+      cpu_limit_percent INTEGER,
+      auto_restart INTEGER NOT NULL DEFAULT 0,
+      max_restart_retries INTEGER NOT NULL DEFAULT 3,
+      stop_command TEXT NOT NULL DEFAULT 'stop',
+      application_type TEXT NOT NULL DEFAULT 'minecraft:paper' CHECK (application_type IN (${allowedTypes})),
+      status TEXT NOT NULL DEFAULT 'stopped' CHECK (status IN ('running', 'stopped', 'crashed', 'starting', 'stopping')),
+      pid INTEGER,
+      last_started_at TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    INSERT INTO instances__minecraft_types_migration (
+      id, name, executable_path, arguments, working_directory,
+      memory_limit_mb, cpu_limit_percent, auto_restart, max_restart_retries, stop_command,
+      application_type, status, pid, last_started_at, created_at, updated_at
+    )
+    SELECT
+      id, name, executable_path, arguments, working_directory,
+      memory_limit_mb, ${cpuLimitPercentSelect}, auto_restart, max_restart_retries, stop_command,
+      CASE application_type
+        WHEN 'javascript' THEN 'nodejs'
+        WHEN 'go' THEN 'generic'
+        WHEN 'minecraft' THEN 'minecraft:paper'
+        ELSE application_type
+      END,
+      status, pid, last_started_at, created_at, updated_at
+    FROM instances;
+
+    DROP TABLE instances;
+    ALTER TABLE instances__minecraft_types_migration RENAME TO instances;
   `);
   database.exec("PRAGMA foreign_keys = ON");
 }

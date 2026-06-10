@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS instances (
   auto_restart INTEGER NOT NULL DEFAULT 0,
   max_restart_retries INTEGER NOT NULL DEFAULT 3,
   stop_command TEXT NOT NULL DEFAULT 'stop',
-  application_type TEXT NOT NULL DEFAULT 'minecraft' CHECK (application_type IN ('python', 'javascript', 'go', 'minecraft', 'generic')),
+  application_type TEXT NOT NULL DEFAULT 'minecraft:paper' CHECK (application_type IN ('python', 'nodejs', 'java', 'generic', 'minecraft:vanilla', 'minecraft:paper', 'minecraft:folia', 'minecraft:fabric', 'minecraft:forge', 'minecraft:neoforge', 'minecraft:purpur', 'minecraft:bungeecord', 'minecraft:velocity')),
   status TEXT NOT NULL DEFAULT 'stopped' CHECK (status IN ('running', 'stopped', 'crashed', 'starting', 'stopping')),
   pid INTEGER,
   last_started_at TEXT,

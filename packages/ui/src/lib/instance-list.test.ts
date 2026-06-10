@@ -6,7 +6,7 @@ function makeInstance(overrides: Partial<Instance> = {}): Instance {
   return {
     id: "id-1",
     name: "Survival",
-    applicationType: "minecraft",
+    applicationType: "minecraft:paper",
     executablePath: "java",
     arguments: "",
     startupCommand: "java -jar server.jar",

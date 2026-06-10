@@ -1,4 +1,5 @@
 import type { Instance, InstanceStatsEntry, InstanceStatsMap } from "@stackpatch/shared";
+import { isMinecraftApplicationType } from "@stackpatch/shared";
 import {
   pingMinecraftServer,
   readMinecraftServerProperties,
@@ -24,7 +25,7 @@ export async function collectInstanceStat(instance: Instance): Promise<InstanceS
     applicationType: instance.applicationType,
   };
 
-  if (instance.applicationType !== "minecraft") {
+  if (!isMinecraftApplicationType(instance.applicationType)) {
     return entry;
   }
 

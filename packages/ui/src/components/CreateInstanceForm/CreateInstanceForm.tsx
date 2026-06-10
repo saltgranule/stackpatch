@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { ApplicationType, Instance } from "@stackpatch/shared";
 import {
   APPLICATION_TYPES,
+  DEFAULT_APPLICATION_TYPE,
   getApplicationTypeDefinition,
 } from "@stackpatch/shared";
 import {
@@ -12,6 +13,7 @@ import {
 import { useNotifications } from "../../hooks/useNotifications";
 import form from "../../styles/consoleForm.module.css";
 import { CardDropdown, ConsoleCard } from "../ConsoleCard";
+import { JavaRuntimeCard } from "../JavaRuntimeCard/JavaRuntimeCard";
 import { PageContent, PageShell } from "../PageShell/PageShell";
 
 const APPLICATION_TYPE_OPTIONS = APPLICATION_TYPES.map((type) => ({
@@ -25,10 +27,10 @@ interface CreateInstanceFormProps {
 }
 
 export function CreateInstanceForm({ onCreated, onCancel }: CreateInstanceFormProps) {
-  const [applicationType, setApplicationType] = useState<ApplicationType>("python");
+  const [applicationType, setApplicationType] = useState<ApplicationType>(DEFAULT_APPLICATION_TYPE);
   const [name, setName] = useState("");
   const [startupCommand, setStartupCommand] = useState(
-    () => getApplicationTypeDefinition("python").defaultStartupCommand,
+    () => getApplicationTypeDefinition(DEFAULT_APPLICATION_TYPE).defaultStartupCommand,
   );
   const [workingDirectory, setWorkingDirectory] = useState("");
   const [instancesRoot, setInstancesRoot] = useState("");
@@ -191,6 +193,8 @@ export function CreateInstanceForm({ onCreated, onCancel }: CreateInstanceFormPr
             </div>
           </form>
         </ConsoleCard>
+
+        <JavaRuntimeCard applicationType={applicationType} />
       </PageContent>
     </PageShell>
   );

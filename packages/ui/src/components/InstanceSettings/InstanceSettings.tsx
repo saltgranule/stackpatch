@@ -11,6 +11,7 @@ import { useNotifications } from "../../hooks/useNotifications";
 import { formatDeleteInstanceConfirm } from "../../lib/instance-permissions";
 import form from "../../styles/consoleForm.module.css";
 import { CardDropdown, ConsoleCard } from "../ConsoleCard";
+import { JavaRuntimeCard } from "../JavaRuntimeCard/JavaRuntimeCard";
 import { PageContent, PageShell } from "../PageShell/PageShell";
 
 const APPLICATION_TYPE_OPTIONS = APPLICATION_TYPES.map((type) => ({
@@ -265,6 +266,8 @@ export function InstanceSettings({
             )}
           </form>
         </ConsoleCard>
+
+        <JavaRuntimeCard applicationType={applicationType} />
 
         <ConsoleCard
           tabLabel="resources"

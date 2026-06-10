@@ -10,9 +10,8 @@ import type {
 } from "@stackpatch/shared";
 import {
   AUDIT_LOG_LIMIT,
-  DEFAULT_APPLICATION_TYPE,
   getApplicationTypeDefinition,
-  isApplicationType,
+  normalizeApplicationType,
   isScheduleAction,
   isScheduleIntervalUnit,
   resolveDataDir,
@@ -64,7 +63,7 @@ function mapSchedule(row: ScheduleRow): InstanceSchedule {
 }
 
 function mapApplicationType(value: string): ApplicationType {
-  return isApplicationType(value) ? value : DEFAULT_APPLICATION_TYPE;
+  return normalizeApplicationType(value);
 }
 
 export function loadEnabledSchedules(): InstanceSchedule[] {
