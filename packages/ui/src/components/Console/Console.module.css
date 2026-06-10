@@ -3,16 +3,7 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
-  box-sizing: border-box;
-  min-height: 100%;
-  height: 100%;
-}
-
-.consoleViewport {
-  flex: 0 0 auto;
-  height: calc(100% - 16px);
-  display: flex;
-  flex-direction: column;
+  overflow: hidden;
 }
 
 .consoleStack {
@@ -29,7 +20,7 @@
   display: flex;
   flex-direction: column;
   flex: 1;
-  min-height: 0;
+  min-height: 280px;
 }
 
 .tabSlot {
@@ -180,15 +171,6 @@
   cursor: not-allowed;
 }
 
-.cardRows {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  flex-shrink: 0;
-  min-width: 0;
-  width: 100%;
-}
-
 .cards {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -199,8 +181,16 @@
   width: 100%;
 }
 
+.cardsThree {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 @media (max-width: 1120px) {
   .cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .cardsThree {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -209,10 +199,19 @@
   .page {
     padding: 16px;
     gap: 12px;
+    overflow-y: auto;
+    overflow-x: hidden;
   }
 
-  .consoleViewport {
-    height: calc(100% - 12px);
+  .consoleStack {
+    flex: 0 0 auto;
+    height: clamp(200px, 42dvh, 360px);
+    min-height: 0;
+  }
+
+  .terminalWrap {
+    min-height: 0;
+    height: 100%;
   }
 
   .commandBar {
@@ -225,19 +224,21 @@
 }
 
 @media (max-width: 560px) {
-  .cardRows {
-    gap: 10px;
-  }
-
-  .cards {
+  .cards,
+  .cardsThree {
     grid-template-columns: minmax(0, 1fr);
     gap: 10px;
   }
 }
 
-/* Short mobile viewports: scroll the page; keep card rows horizontally swipeable. */
+/* Short mobile viewports: keep console readable and scroll cards horizontally. */
 @media (max-width: 768px) and (max-height: 700px) {
-  .cardRows .cards {
+  .consoleStack {
+    height: clamp(160px, 36dvh, 260px);
+  }
+
+  .cards,
+  .cardsThree {
     display: flex;
     flex-direction: row;
     gap: 10px;
@@ -247,7 +248,8 @@
     grid-template-columns: unset;
   }
 
-  .cardRows .cards > * {
+  .cards > *,
+  .cardsThree > * {
     flex: 0 0 min(78vw, 272px);
     scroll-snap-align: start;
     min-width: 0;
