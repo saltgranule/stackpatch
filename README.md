@@ -22,11 +22,26 @@ A lot of game servers and small applications run on spare hardware like old opti
 
 ---
 
-## requirements
+## prerequisites
 
-- Windows 10 or later (Linux support planned)
-- Node.js 22.5 or later
-- pnpm 9 (installed automatically on first run of `start.bat` or `pnpm run start:prod`)
+Install these before running stackpatch:
+
+| Requirement | Details |
+|---|---|
+| **OS** | Windows 10 or later (Linux support planned) |
+| **Node.js** | [22.5 or later](https://nodejs.org/) — required by `start.bat`, `startdev.bat`, and the orchestrator scripts |
+| **Git** | To clone the repository |
+| **Network** | First run downloads dependencies via `npx` and pnpm (no Docker or external database) |
+
+**Optional**
+
+- **pnpm 9** — not required upfront; `start.bat` and `pnpm run start:prod` fetch `pnpm@9.15.9` automatically on first run. Install manually if you prefer: `npm install -g pnpm@9`
+- **Runtimes for your instances** — e.g. Java 25 for Minecraft ([Temurin](https://adoptium.net/temurin/releases/?version=25)), Python, Node.js, depending on what you host. The panel does not install these for you.
+
+**Before first start**
+
+- Ensure ports **23333** (panel) and **24444** (daemon IPC) are free, or change them later in system settings.
+- On Windows, use **`start.bat`** to launch the panel, which will build the panel UI, and installing any missing pre-requisites
 
 ---
 
@@ -45,9 +60,13 @@ On Windows, double-click `start.bat` instead — same as `pnpm run start:prod`.
 **Development (UI hot reload, Vite middleware):**
 
 ```bash
+git clone https://github.com/saltgranule/stackpatch
+cd stackpatch
 pnpm install
 pnpm run dev
 ```
+
+On Windows, a local `startdev.bat` (gitignored) can run `node scripts\run-dev.mjs` instead.
 
 Open [http://localhost:23333](http://localhost:23333) in your browser.
 
