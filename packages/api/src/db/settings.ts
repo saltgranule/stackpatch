@@ -1,6 +1,8 @@
 import {
   DEFAULT_DAEMON_IPC_PORT,
+  DEFAULT_MAX_UPLOAD_FILE_SIZE_MB,
   DEFAULT_PANEL_PORT,
+  isValidMaxUploadFileSizeMb,
   isValidPort,
   type SystemSettings,
 } from "@stackpatch/shared";
@@ -30,16 +32,27 @@ function parsePort(value: string | null, fallback: number): number {
   return isValidPort(parsed) ? parsed : fallback;
 }
 
+function parseMaxUploadFileSizeMb(value: string | null, fallback: number): number {
+  if (!value) return fallback;
+  const parsed = Number(value);
+  return isValidMaxUploadFileSizeMb(parsed) ? parsed : fallback;
+}
+
 export function getSystemSettings(): SystemSettings {
   return {
     panelPort: parsePort(getSetting("panel_port"), DEFAULT_PANEL_PORT),
     daemonPort: parsePort(getSetting("daemon_port"), DEFAULT_DAEMON_IPC_PORT),
+    maxUploadFileSizeMb: parseMaxUploadFileSizeMb(
+      getSetting("max_upload_file_size_mb"),
+      DEFAULT_MAX_UPLOAD_FILE_SIZE_MB,
+    ),
   };
 }
 
 export interface UpdateSystemSettingsInput {
   panelPort?: number;
   daemonPort?: number;
+  maxUploadFileSizeMb?: number;
 }
 
 export function updateSystemSettings(input: UpdateSystemSettingsInput): SystemSettings {
@@ -55,6 +68,13 @@ export function updateSystemSettings(input: UpdateSystemSettingsInput): SystemSe
       throw new Error("Daemon port must be between 1 and 65535");
     }
     setSetting("daemon_port", String(input.daemonPort));
+  }
+
+  if (input.maxUploadFileSizeMb !== undefined) {
+    if (!isValidMaxUploadFileSizeMb(input.maxUploadFileSizeMb)) {
+      throw new Error("Max upload file size must be between 1 and 2048 MB");
+    }
+    setSetting("max_upload_file_size_mb", String(input.maxUploadFileSizeMb));
   }
 
   return getSystemSettings();

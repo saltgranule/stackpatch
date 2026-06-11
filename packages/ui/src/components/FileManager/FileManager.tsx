@@ -4,6 +4,7 @@ import {
   archiveInstanceFiles,
   createInstanceEntry,
   deleteInstanceFiles,
+  fetchUploadConfig,
   getInstanceFileDownloadUrl,
   listInstanceFiles,
   renameInstanceEntry,
@@ -178,6 +179,7 @@ export function FileManager({ instance, canWrite }: FileManagerProps) {
   const [actionBusy, setActionBusy] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [maxUploadFileSizeMb, setMaxUploadFileSizeMb] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const allSelected = entries.length > 0 && entries.every((entry) => selected.has(entry.path));
@@ -222,6 +224,25 @@ export function FileManager({ instance, canWrite }: FileManagerProps) {
     void loadDirectory("");
   }, [loadDirectory]);
 
+  useEffect(() => {
+    fetchUploadConfig()
+      .then((config) => setMaxUploadFileSizeMb(config.maxUploadFileSizeMb))
+      .catch(() => undefined);
+  }, []);
+
+  function validateUploadSize(files: FileList | File[]): string | null {
+    if (maxUploadFileSizeMb === null) {
+      return null;
+    }
+    const maxBytes = maxUploadFileSizeMb * 1024 * 1024;
+    for (const file of files) {
+      if (file.size > maxBytes) {
+        return `"${file.name}" exceeds the maximum upload size of ${maxUploadFileSizeMb} MB`;
+      }
+    }
+    return null;
+  }
+
   function toggleSelected(path: string) {
     setSelected((current) => {
       const next = new Set(current);
@@ -261,6 +282,12 @@ export function FileManager({ instance, canWrite }: FileManagerProps) {
 
   async function handleUpload(files: FileList | File[] | null) {
     if (!files || files.length === 0 || !canWrite) return;
+
+    const sizeError = validateUploadSize(files);
+    if (sizeError) {
+      setError(sizeError);
+      return;
+    }
 
     setUploading(true);
     setError(null);
@@ -545,7 +572,11 @@ export function FileManager({ instance, canWrite }: FileManagerProps) {
 
                 {entries.length === 0 ? (
                   <p className={styles.state}>
-                    {canWrite ? "Empty folder. Drop files here or upload." : "Empty folder."}
+                    {canWrite
+                      ? maxUploadFileSizeMb !== null
+                        ? `Empty folder. Drop files here or upload (max ${maxUploadFileSizeMb} MB per file).`
+                        : "Empty folder. Drop files here or upload."
+                      : "Empty folder."}
                   </p>
                 ) : (
                   entries.map((entry) => {

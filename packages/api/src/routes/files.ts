@@ -3,8 +3,10 @@ import path from "node:path";
 import { pipeline } from "node:stream/promises";
 import type { FastifyInstance, FastifyReply } from "fastify";
 import multipart from "@fastify/multipart";
+import { MAX_MAX_UPLOAD_FILE_SIZE_MB } from "@stackpatch/shared";
 import { requireInstanceAccess, getRequestUser } from "../auth/middleware.js";
 import { getInstanceById } from "../db/instances.js";
+import { getSystemSettings } from "../db/settings.js";
 import {
   archiveInstancePaths,
   unzipInstanceFile,
@@ -21,6 +23,7 @@ import {
   writeEditableFile,
 } from "../lib/instance-files.js";
 import { isPathSecurityError } from "../lib/instance-paths.js";
+import { createUploadSizeLimitStream, UploadSizeLimitError } from "../lib/upload-size-limit.js";
 import { recordAuditEvent } from "../services/audit-log.js";
 
 interface DeleteFilesBody {
@@ -54,6 +57,12 @@ interface RenameFileBody {
 }
 
 function handleFileError(reply: FastifyReply, error: unknown) {
+  if (error instanceof UploadSizeLimitError) {
+    const maxUploadFileSizeMb = getSystemSettings().maxUploadFileSizeMb;
+    return reply.status(413).send({
+      error: `File exceeds the maximum upload size of ${maxUploadFileSizeMb} MB`,
+    });
+  }
   if (isPathSecurityError(error)) {
     return reply.status(400).send({ error: error.message });
   }
@@ -63,7 +72,7 @@ function handleFileError(reply: FastifyReply, error: unknown) {
 export async function fileRoutes(app: FastifyInstance): Promise<void> {
   await app.register(multipart, {
     limits: {
-      fileSize: 100 * 1024 * 1024,
+      fileSize: MAX_MAX_UPLOAD_FILE_SIZE_MB * 1024 * 1024,
       files: 32,
     },
   });
@@ -162,6 +171,7 @@ export async function fileRoutes(app: FastifyInstance): Promise<void> {
       try {
         let relativeDir = "";
         const uploaded: string[] = [];
+        const maxUploadBytes = getSystemSettings().maxUploadFileSizeMb * 1024 * 1024;
         const parts = request.parts();
 
         for await (const part of parts) {
@@ -184,7 +194,19 @@ export async function fileRoutes(app: FastifyInstance): Promise<void> {
           const relativeFilePath = normalizedDir ? `${normalizedDir}/${fileName}` : fileName;
           const destination = resolveInstanceFilePath(instance.workingDirectory, relativeFilePath);
 
-          await pipeline(part.file, fs.createWriteStream(destination));
+          try {
+            await pipeline(
+              part.file,
+              createUploadSizeLimitStream(maxUploadBytes),
+              fs.createWriteStream(destination),
+            );
+          } catch (uploadError) {
+            if (fs.existsSync(destination)) {
+              fs.unlinkSync(destination);
+            }
+            throw uploadError;
+          }
+
           uploaded.push(toRelativeFilePath(instance.workingDirectory, destination));
         }
 

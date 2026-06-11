@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { SystemSettingsStatus, ThemePreference } from "@stackpatch/shared";
+import { MAX_MAX_UPLOAD_FILE_SIZE_MB } from "@stackpatch/shared";
 import { fetchSystemSettings, updateSystemSettings } from "../../api/client";
 import { useNotifications } from "../../hooks/useNotifications";
 import form from "../../styles/consoleForm.module.css";
@@ -22,6 +23,7 @@ export function SystemSettings({ themePreference, onThemeChange }: SystemSetting
   const [status, setStatus] = useState<SystemSettingsStatus | null>(null);
   const [panelPort, setPanelPort] = useState("");
   const [daemonPort, setDaemonPort] = useState("");
+  const [maxUploadFileSizeMb, setMaxUploadFileSizeMb] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -36,6 +38,7 @@ export function SystemSettings({ themePreference, onThemeChange }: SystemSetting
         setStatus(result);
         setPanelPort(String(result.settings.panelPort));
         setDaemonPort(String(result.settings.daemonPort));
+        setMaxUploadFileSizeMb(String(result.settings.maxUploadFileSizeMb));
       })
       .catch((loadError) => {
         if (cancelled) return;
@@ -55,12 +58,14 @@ export function SystemSettings({ themePreference, onThemeChange }: SystemSetting
   const hasChanges =
     status !== null &&
     (Number(panelPort) !== status.settings.panelPort ||
-      Number(daemonPort) !== status.settings.daemonPort);
+      Number(daemonPort) !== status.settings.daemonPort ||
+      Number(maxUploadFileSizeMb) !== status.settings.maxUploadFileSizeMb);
 
   function handleReset() {
     if (!status) return;
     setPanelPort(String(status.settings.panelPort));
     setDaemonPort(String(status.settings.daemonPort));
+    setMaxUploadFileSizeMb(String(status.settings.maxUploadFileSizeMb));
     setError(null);
   }
 
@@ -75,15 +80,21 @@ export function SystemSettings({ themePreference, onThemeChange }: SystemSetting
       const updated = await updateSystemSettings({
         panelPort: Number(panelPort),
         daemonPort: Number(daemonPort),
+        maxUploadFileSizeMb: Number(maxUploadFileSizeMb),
       });
       setStatus(updated);
       setPanelPort(String(updated.settings.panelPort));
       setDaemonPort(String(updated.settings.daemonPort));
+      setMaxUploadFileSizeMb(String(updated.settings.maxUploadFileSizeMb));
 
+      const portChanged =
+        updated.settings.panelPort !== status.settings.panelPort ||
+        updated.settings.daemonPort !== status.settings.daemonPort;
       const needsRestart =
-        updated.restartRequired ||
-        updated.envOverrides.panelPort ||
-        updated.envOverrides.daemonPort;
+        portChanged &&
+        (updated.restartRequired ||
+          updated.envOverrides.panelPort ||
+          updated.envOverrides.daemonPort);
 
       notifySuccess(
         "Settings saved",
@@ -116,7 +127,7 @@ export function SystemSettings({ themePreference, onThemeChange }: SystemSetting
       <PageContent>
         <ConsoleCard
           tabLabel="networking"
-          hint="Configure the panel web port and the daemon IPC port used for console streaming and process control."
+          hint="Configure the panel web port, daemon IPC port, and file upload limits."
         >
           <form className={form.form} onSubmit={handleSubmit}>
             <label className={form.field}>
@@ -177,6 +188,21 @@ export function SystemSettings({ themePreference, onThemeChange }: SystemSetting
               <p className={form.warning}>Restart stackpatch for port changes to take effect.</p>
             )}
 
+            <label className={form.field}>
+              <span className={form.fieldLabel}>Max Upload File Size (MB)</span>
+              <input
+                type="number"
+                min={1}
+                max={MAX_MAX_UPLOAD_FILE_SIZE_MB}
+                value={maxUploadFileSizeMb}
+                onChange={(event) => setMaxUploadFileSizeMb(event.target.value)}
+              />
+              <span className={form.hint}>
+                Per-file limit for uploads in the file manager. Applies immediately without a restart.
+                Maximum configurable size is {MAX_MAX_UPLOAD_FILE_SIZE_MB} MB.
+              </span>
+            </label>
+
             <div className={form.actions}>
               <button type="submit" className={form.actionPrimary} disabled={saving}>
                 {saving ? "Saving…" : "Save Settings"}
@@ -227,6 +253,10 @@ export function SystemSettings({ themePreference, onThemeChange }: SystemSetting
             </p>
             <p className={styles.statusItem}>
               Daemon IPC (saved): <span className={styles.statusValue}>{status.settings.daemonPort}</span>
+            </p>
+            <p className={styles.statusItem}>
+              Max upload file size:{" "}
+              <span className={styles.statusValue}>{status.settings.maxUploadFileSizeMb} MB</span>
             </p>
           </div>
         </ConsoleCard>

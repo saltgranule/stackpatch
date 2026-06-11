@@ -59,6 +59,7 @@ export interface InstancePermission {
 export interface SystemSettings {
   panelPort: number;
   daemonPort: number;
+  maxUploadFileSizeMb: number;
 }
 
 export interface SystemSettingsStatus {

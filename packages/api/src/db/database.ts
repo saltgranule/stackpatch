@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { fileURLToPath } from "node:url";
-import { DEFAULT_DAEMON_IPC_PORT, DEFAULT_PANEL_PORT, applicationTypeCheckConstraintSql, parseLegacyCronIntervalHours } from "@stackpatch/shared";
+import { DEFAULT_DAEMON_IPC_PORT, DEFAULT_MAX_UPLOAD_FILE_SIZE_MB, DEFAULT_PANEL_PORT, applicationTypeCheckConstraintSql, parseLegacyCronIntervalHours } from "@stackpatch/shared";
 import { config } from "../config.js";
 
 let db: DatabaseSync | null = null;
@@ -386,6 +386,7 @@ function seedDefaults(database: DatabaseSync): void {
   );
   insertSetting.run("panel_port", String(DEFAULT_PANEL_PORT));
   insertSetting.run("daemon_port", String(DEFAULT_DAEMON_IPC_PORT));
+  insertSetting.run("max_upload_file_size_mb", String(DEFAULT_MAX_UPLOAD_FILE_SIZE_MB));
 }
 
 /** Upgrade databases created before M5 default ports. */

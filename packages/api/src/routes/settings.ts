@@ -7,6 +7,7 @@ import { recordAuditEvent } from "../services/audit-log.js";
 interface UpdateSettingsBody {
   panelPort?: number;
   daemonPort?: number;
+  maxUploadFileSizeMb?: number;
 }
 
 export async function settingsRoutes(app: FastifyInstance): Promise<void> {

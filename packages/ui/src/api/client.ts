@@ -407,6 +407,11 @@ export function getConsoleLogDownloadUrl(instanceId: string): string {
   return `/api/instances/${instanceId}/logs/download`;
 }
 
+export async function fetchUploadConfig(): Promise<{ maxUploadFileSizeMb: number }> {
+  const response = await apiFetch("/api/config/uploads", fetchOptions);
+  return parseJson<{ maxUploadFileSizeMb: number }>(response);
+}
+
 export async function fetchSystemSettings(): Promise<SystemSettingsStatus> {
   const response = await apiFetch("/api/settings", fetchOptions);
   return parseJson<SystemSettingsStatus>(response);
@@ -415,6 +420,7 @@ export async function fetchSystemSettings(): Promise<SystemSettingsStatus> {
 export async function updateSystemSettings(input: {
   panelPort?: number;
   daemonPort?: number;
+  maxUploadFileSizeMb?: number;
 }): Promise<SystemSettingsStatus> {
   const response = await apiFetch("/api/settings", {
     ...fetchOptions,

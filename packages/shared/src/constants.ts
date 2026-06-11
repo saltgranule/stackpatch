@@ -2,9 +2,19 @@ export const APP_NAME = "stackpatch";
 export const APP_VERSION = "0.1.0";
 export const DEFAULT_PANEL_PORT = 23333;
 export const DEFAULT_DAEMON_IPC_PORT = 24444;
+export const DEFAULT_MAX_UPLOAD_FILE_SIZE_MB = 100;
+export const MAX_MAX_UPLOAD_FILE_SIZE_MB = 2048;
 
 export function isValidPort(port: number): boolean {
   return Number.isInteger(port) && port >= 1 && port <= 65535;
+}
+
+export function isValidMaxUploadFileSizeMb(sizeMb: number): boolean {
+  return (
+    Number.isInteger(sizeMb) &&
+    sizeMb >= 1 &&
+    sizeMb <= MAX_MAX_UPLOAD_FILE_SIZE_MB
+  );
 }
 export const DEFAULT_STOP_COMMAND = "stop";
 /** Max console lines kept in memory, on disk, and sent to the browser on connect. */
