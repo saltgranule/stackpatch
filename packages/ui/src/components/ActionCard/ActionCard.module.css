@@ -51,15 +51,8 @@
 }
 
 @media (max-width: 1120px) {
-  .action {
-    align-self: stretch;
-    justify-content: center;
-  }
-}
-
-@media (max-width: 560px) {
   .card {
-    padding: 16px;
+    padding: 14px 16px;
     gap: 6px;
   }
 
@@ -67,7 +60,19 @@
     font-size: 15px;
   }
 
+  .hint {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    font-size: 11px;
+    line-height: 1.4;
+  }
+
   .action {
-    padding: 10px 14px;
+    align-self: stretch;
+    justify-content: center;
+    padding: 8px 12px;
+    font-size: 12px;
   }
 }

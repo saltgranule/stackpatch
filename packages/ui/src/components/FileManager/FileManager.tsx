@@ -10,6 +10,7 @@ import {
   unzipInstanceFile,
   uploadInstanceFiles,
 } from "../../api/client";
+import { useNotifications } from "../../hooks/useNotifications";
 import { MATERIAL_ICONS, MaterialIcon, type MaterialIconName } from "../../icons";
 import { Dropdown } from "../Dropdown/Dropdown";
 import { ScrollArea } from "../ScrollArea/ScrollArea";
@@ -167,6 +168,7 @@ function FileRowActions({
 }
 
 export function FileManager({ instance, canWrite }: FileManagerProps) {
+  const { notifySuccess, notifyError } = useNotifications();
   const [currentPath, setCurrentPath] = useState("");
   const [entries, setEntries] = useState<FileEntry[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -287,8 +289,16 @@ export function FileManager({ instance, canWrite }: FileManagerProps) {
     try {
       await deleteInstanceFiles(instance.id, paths);
       await loadDirectory(currentPath);
+      notifySuccess(
+        paths.length === 1 ? `"${label}" deleted` : `${paths.length} items deleted`,
+        paths.length === 1
+          ? "The file has been removed from the instance."
+          : "The selected items have been removed from the instance.",
+      );
     } catch (deleteError) {
-      setError(deleteError instanceof Error ? deleteError.message : "Delete failed");
+      const message = deleteError instanceof Error ? deleteError.message : "Delete failed";
+      setError(message);
+      notifyError("Delete failed", message);
     } finally {
       setActionBusy(false);
     }
@@ -356,10 +366,13 @@ export function FileManager({ instance, canWrite }: FileManagerProps) {
     setActionBusy(true);
     setError(null);
     try {
-      await renameInstanceEntry(instance.id, entry.path, newName.trim());
+      const renamed = await renameInstanceEntry(instance.id, entry.path, newName.trim());
       await loadDirectory(currentPath);
+      notifySuccess(`Renamed to "${renamed.name}"`, `"${entry.name}" was renamed successfully.`);
     } catch (renameError) {
-      setError(renameError instanceof Error ? renameError.message : "Rename failed");
+      const message = renameError instanceof Error ? renameError.message : "Rename failed";
+      setError(message);
+      notifyError("Rename failed", message);
     } finally {
       setActionBusy(false);
     }

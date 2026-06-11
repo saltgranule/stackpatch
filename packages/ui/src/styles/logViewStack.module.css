@@ -1,0 +1,19 @@
+.consoleStack {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+@media (max-width: 1120px) {
+  .consoleStack {
+    flex: 1;
+    min-height: 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .consoleStack {
+    gap: 8px;
+  }
+}

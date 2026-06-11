@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { fetchInstanceFileContent, saveInstanceFileContent } from "../../api/client";
+import { useNotifications } from "../../hooks/useNotifications";
 import { ConsoleCard } from "../ConsoleCard";
 import form from "../../styles/consoleForm.module.css";
 import styles from "./FileEditorModal.module.css";
@@ -21,6 +22,7 @@ export function FileEditorModal({
   onClose,
   onSaved,
 }: FileEditorModalProps) {
+  const { notifySuccess, notifyError } = useNotifications();
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -59,14 +61,17 @@ export function FileEditorModal({
     setError(null);
     try {
       await saveInstanceFileContent(instanceId, filePath, content);
+      notifySuccess(`"${fileName}" saved`, "Your changes have been written to disk.");
       onSaved();
       onClose();
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : "Failed to save file");
+      const message = saveError instanceof Error ? saveError.message : "Failed to save file";
+      setError(message);
+      notifyError("Failed to save file", message);
     } finally {
       setSaving(false);
     }
-  }, [canWrite, content, filePath, instanceId, loading, onClose, onSaved, saving]);
+  }, [canWrite, content, fileName, filePath, instanceId, loading, notifyError, notifySuccess, onClose, onSaved, saving]);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {

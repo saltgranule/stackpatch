@@ -10,6 +10,8 @@ import { parseAnsi } from "../../lib/ansi";
 import { appendConsoleLine } from "../../lib/console-log";
 import { ActionCard } from "../ActionCard/ActionCard";
 import { ScrollArea } from "../ScrollArea/ScrollArea";
+import cardStyles from "../../styles/logViewCards.module.css";
+import stackStyles from "../../styles/logViewStack.module.css";
 import styles from "./Console.module.css";
 
 interface ConsoleProps {
@@ -236,11 +238,9 @@ export function Console({
     }
   }
 
-  const cardsClassName = `${styles.cards}${javaRuntime ? "" : ` ${styles.cardsThree}`}`.trim();
-
   return (
-    <ScrollArea variant="page" className={styles.page}>
-      <div className={styles.consoleStack}>
+    <div className={styles.page}>
+      <div className={stackStyles.consoleStack}>
         <div className={styles.terminalWrap}>
           <div className={styles.tabSlot}>
             <button
@@ -251,9 +251,6 @@ export function Console({
             >
               {downloading ? "Downloading…" : "Download logs"}
             </button>
-            <p className={styles.colorHint}>
-              Some applications may not show colors when run through a panel.
-            </p>
           </div>
           <div className={styles.terminal}>
             <ScrollArea variant="console" className={styles.output}>
@@ -307,7 +304,7 @@ export function Console({
         </form>
       </div>
 
-      <ScrollArea variant="page" fill={false} orientation="horizontal" className={cardsClassName}>
+      <div className={cardStyles.cards}>
         <ActionCard
           title="Instance Settings"
           hint="Startup command, working directory, and instance deletion."
@@ -334,7 +331,7 @@ export function Console({
             href={javaRuntime.url}
           />
         )}
-      </ScrollArea>
-    </ScrollArea>
+      </div>
+    </div>
   );
 }

@@ -64,8 +64,6 @@ pnpm install
 pnpm run dev
 ```
 
-On Windows, a local `startdev.bat` (gitignored) can run `node scripts\run-dev.mjs` instead.
-
 Open [http://localhost:23333](http://localhost:23333) in your browser.
 
 Default login: `admin` / `changeme` (change after first sign-in).

@@ -1,0 +1,37 @@
+.cards {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  align-items: stretch;
+  flex-shrink: 0;
+  min-width: 0;
+}
+
+/* Switch to a single-row rail before cards stretch vertically in a grid. */
+@media (max-width: 1120px) {
+  .cards {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    padding-bottom: 2px;
+    grid-template-columns: unset;
+  }
+
+  .cards > * {
+    flex: 0 0 min(280px, 42vw);
+    scroll-snap-align: start;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .cards > * {
+    flex-basis: min(72vw, 252px);
+  }
+}

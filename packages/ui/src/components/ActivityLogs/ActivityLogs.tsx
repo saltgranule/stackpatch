@@ -3,6 +3,8 @@ import type { AuditLogEntry } from "@stackpatch/shared";
 import { fetchAuditLogs, downloadAuthenticatedFile, getAuditLogDownloadUrl } from "../../api/client";
 import { ActionCard } from "../ActionCard/ActionCard";
 import { ScrollArea } from "../ScrollArea/ScrollArea";
+import cardStyles from "../../styles/logViewCards.module.css";
+import stackStyles from "../../styles/logViewStack.module.css";
 import styles from "./ActivityLogs.module.css";
 
 const POLL_INTERVAL_MS = 5000;
@@ -62,7 +64,7 @@ export function ActivityLogs({ onOpenUsers }: ActivityLogsProps) {
 
   return (
     <div className={styles.page}>
-      <div className={styles.consoleStack}>
+      <div className={stackStyles.consoleStack}>
         <div className={styles.terminalWrap}>
           <div className={styles.tabSlot}>
             <button
@@ -96,7 +98,7 @@ export function ActivityLogs({ onOpenUsers }: ActivityLogsProps) {
         </div>
       </div>
 
-      <div className={styles.cards}>
+      <div className={cardStyles.cards}>
         <ActionCard
           title="Users"
           hint="Manage panel accounts and instance access."
