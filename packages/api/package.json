@@ -17,7 +17,7 @@
     "@fastify/middie": "^9.0.3",
     "@fastify/multipart": "^9.0.3",
     "@fastify/session": "^11.1.1",
-    "@fastify/static": "^8.2.0",
+    "@fastify/static": "^9.1.1",
     "@fastify/websocket": "^11.2.0",
     "@stackpatch/shared": "workspace:*",
     "adm-zip": "^0.5.17",
