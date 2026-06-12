@@ -13,6 +13,7 @@ import type {
   SystemSettingsStatus,
   UserWithPermissions,
 } from "@stackpatch/shared";
+import { extractApiErrorMessage } from "../lib/api-error.js";
 
 const fetchOptions: RequestInit = { credentials: "include" };
 
@@ -58,8 +59,21 @@ function formatFetchError(error: unknown): Error {
 
 async function parseJson<T>(response: Response): Promise<T> {
   if (!response.ok) {
-    const body = (await response.json().catch(() => null)) as { error?: string } | null;
-    throw new Error(body?.error ?? `Request failed (${response.status})`);
+    const contentType = response.headers.get("content-type") ?? "";
+    let body: { error?: string; message?: string; statusCode?: number } | null = null;
+    let fallbackText = "";
+
+    if (contentType.includes("application/json")) {
+      body = (await response.json().catch(() => null)) as {
+        error?: string;
+        message?: string;
+        statusCode?: number;
+      } | null;
+    } else {
+      fallbackText = await response.text().catch(() => "");
+    }
+
+    throw new Error(extractApiErrorMessage(body, response.status, fallbackText));
   }
   return response.json() as Promise<T>;
 }
@@ -448,6 +462,7 @@ export async function uploadInstanceFiles(
   instanceId: string,
   directoryPath: string,
   files: File[] | FileList,
+  onProgress?: (percent: number) => void,
 ): Promise<string[]> {
   const formData = new FormData();
   formData.append("path", directoryPath);
@@ -455,13 +470,54 @@ export async function uploadInstanceFiles(
     formData.append("file", file, file.name);
   }
 
-  const response = await apiFetch(`/api/instances/${instanceId}/files/upload`, {
-    ...fetchOptions,
-    method: "POST",
-    body: formData,
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", `/api/instances/${instanceId}/files/upload`);
+    xhr.withCredentials = true;
+
+    xhr.upload.onprogress = (event) => {
+      if (!onProgress || !event.lengthComputable || event.total <= 0) {
+        return;
+      }
+      onProgress(Math.min(100, Math.round((event.loaded / event.total) * 100)));
+    };
+
+    xhr.onload = () => {
+      const contentType = xhr.getResponseHeader("content-type") ?? "";
+      const rawBody = xhr.responseText;
+
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const data = JSON.parse(rawBody) as { uploaded: string[] };
+          resolve(data.uploaded);
+        } catch {
+          reject(new Error("Upload failed"));
+        }
+        return;
+      }
+
+      let body: { error?: string; message?: string; statusCode?: number } | null = null;
+      if (contentType.includes("application/json") && rawBody) {
+        try {
+          body = JSON.parse(rawBody) as { error?: string; message?: string; statusCode?: number };
+        } catch {
+          body = null;
+        }
+      }
+
+      reject(new Error(extractApiErrorMessage(body, xhr.status, rawBody)));
+    };
+
+    xhr.onerror = () => {
+      reject(new Error("Upload failed"));
+    };
+
+    xhr.onabort = () => {
+      reject(new Error("Upload cancelled"));
+    };
+
+    xhr.send(formData);
   });
-  const data = await parseJson<{ uploaded: string[] }>(response);
-  return data.uploaded;
 }
 
 export async function fetchInstanceFileContent(

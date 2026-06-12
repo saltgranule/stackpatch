@@ -57,8 +57,50 @@ export function Console({
   const [connected, setConnected] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [input, setInput] = useState("");
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const outputRef = useRef<HTMLDivElement>(null);
   const socketRef = useRef<WebSocket | null>(null);
+  const stickToBottomRef = useRef(true);
+  const pendingInitialScrollRef = useRef(true);
+  const scrollFrameRef = useRef<number | null>(null);
+
+  const scrollOutputToBottom = useCallback((behavior: ScrollBehavior = "auto") => {
+    const output = outputRef.current;
+    if (!output) {
+      return;
+    }
+
+    if (behavior === "smooth") {
+      output.scrollTo({ top: output.scrollHeight, behavior: "smooth" });
+      return;
+    }
+
+    output.scrollTop = output.scrollHeight;
+  }, []);
+
+  const scheduleScrollToBottom = useCallback(() => {
+    if (!stickToBottomRef.current) {
+      return;
+    }
+
+    if (scrollFrameRef.current !== null) {
+      return;
+    }
+
+    scrollFrameRef.current = window.requestAnimationFrame(() => {
+      scrollFrameRef.current = null;
+      scrollOutputToBottom("auto");
+    });
+  }, [scrollOutputToBottom]);
+
+  const handleOutputScroll = useCallback(() => {
+    const output = outputRef.current;
+    if (!output) {
+      return;
+    }
+
+    const distanceFromBottom = output.scrollHeight - output.scrollTop - output.clientHeight;
+    stickToBottomRef.current = distanceFromBottom <= 48;
+  }, []);
 
   const pushLine = useCallback((line: LogLine) => {
     if (!isConsoleOutputLine(line.text)) {
@@ -164,8 +206,32 @@ export function Console({
   }, [instance.id, pushLine, pushMessage]);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [lines]);
+    stickToBottomRef.current = true;
+    pendingInitialScrollRef.current = true;
+  }, [instance.id]);
+
+  useEffect(() => {
+    return () => {
+      if (scrollFrameRef.current !== null) {
+        window.cancelAnimationFrame(scrollFrameRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (lines.length === 0) {
+      return;
+    }
+
+    if (pendingInitialScrollRef.current) {
+      scrollOutputToBottom("auto");
+      pendingInitialScrollRef.current = false;
+      stickToBottomRef.current = true;
+      return;
+    }
+
+    scheduleScrollToBottom();
+  }, [lines, scheduleScrollToBottom, scrollOutputToBottom]);
 
   const processActive =
     instance.status === "running" ||
@@ -253,7 +319,12 @@ export function Console({
             </button>
           </div>
           <div className={styles.terminal}>
-            <ScrollArea variant="console" className={styles.output}>
+            <ScrollArea
+              ref={outputRef}
+              variant="console"
+              className={styles.output}
+              onScroll={handleOutputScroll}
+            >
               {!connected && (
                 <p className={styles.systemLine}>Reconnecting to console…</p>
               )}
@@ -278,7 +349,6 @@ export function Console({
                   </div>
                 ))
               )}
-              <div ref={bottomRef} />
             </ScrollArea>
           </div>
         </div>

@@ -1,4 +1,4 @@
-import type { ComponentPropsWithoutRef, ReactNode } from "react";
+import { forwardRef, type ComponentPropsWithoutRef, type ReactNode } from "react";
 import styles from "./ScrollArea.module.css";
 
 interface ScrollAreaProps extends Omit<ComponentPropsWithoutRef<"div">, "children"> {
@@ -9,14 +9,17 @@ interface ScrollAreaProps extends Omit<ComponentPropsWithoutRef<"div">, "childre
   orientation?: "vertical" | "horizontal";
 }
 
-export function ScrollArea({
-  children,
-  className,
-  variant = "page",
-  fill = true,
-  orientation = "vertical",
-  ...props
-}: ScrollAreaProps) {
+export const ScrollArea = forwardRef<HTMLDivElement, ScrollAreaProps>(function ScrollArea(
+  {
+    children,
+    className,
+    variant = "page",
+    fill = true,
+    orientation = "vertical",
+    ...props
+  },
+  ref,
+) {
   const classes = [
     fill ? styles.root : styles.static,
     orientation === "horizontal" ? styles.horizontal : styles.vertical,
@@ -27,8 +30,8 @@ export function ScrollArea({
     .join(" ");
 
   return (
-    <div className={classes} {...props}>
+    <div ref={ref} className={classes} {...props}>
       {children}
     </div>
   );
-}
+});

@@ -23,6 +23,7 @@ import {
   writeEditableFile,
 } from "../lib/instance-files.js";
 import { isPathSecurityError } from "../lib/instance-paths.js";
+import { formatFileOperationError } from "../lib/file-operation-error.js";
 import { createUploadSizeLimitStream, UploadSizeLimitError } from "../lib/upload-size-limit.js";
 import { recordAuditEvent } from "../services/audit-log.js";
 
@@ -66,7 +67,7 @@ function handleFileError(reply: FastifyReply, error: unknown) {
   if (isPathSecurityError(error)) {
     return reply.status(400).send({ error: error.message });
   }
-  throw error;
+  return reply.status(500).send({ error: formatFileOperationError(error) });
 }
 
 export async function fileRoutes(app: FastifyInstance): Promise<void> {
@@ -301,11 +302,21 @@ export async function fileRoutes(app: FastifyInstance): Promise<void> {
       }
 
       try {
-        const archived = archiveInstancePaths(
+        const archived = await archiveInstancePaths(
           instance.workingDirectory,
           paths,
           request.body?.directoryPath ?? "",
           request.body?.outputName,
+          (progress) => {
+            request.log.info(
+              {
+                instanceId: instance.id,
+                entriesProcessed: progress.entriesProcessed,
+                bytesProcessed: progress.bytesProcessed,
+              },
+              "archive progress",
+            );
+          },
         );
         const user = getRequestUser(request);
         recordAuditEvent(

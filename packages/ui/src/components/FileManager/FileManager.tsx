@@ -16,6 +16,7 @@ import { MATERIAL_ICONS, MaterialIcon, type MaterialIconName } from "../../icons
 import { Dropdown } from "../Dropdown/Dropdown";
 import { ScrollArea } from "../ScrollArea/ScrollArea";
 import { FileEditorModal } from "./FileEditorModal";
+import { FileActionProgress } from "./FileActionProgress";
 import styles from "./FileManager.module.css";
 
 interface FileManagerProps {
@@ -26,6 +27,17 @@ interface FileManagerProps {
 interface OpenEditorState {
   path: string;
   name: string;
+}
+
+interface FileOperationState {
+  label: string;
+  progress: number | null;
+}
+
+interface OperationFeedback {
+  successTitle: string;
+  successDescription?: string;
+  errorTitle: string;
 }
 
 type FileAction = "delete" | "archive" | "unzip" | "rename";
@@ -57,6 +69,10 @@ function getParentPath(path: string): string {
 
 function isZipFile(name: string): boolean {
   return name.toLowerCase().endsWith(".zip");
+}
+
+function isArchivableEntry(entry: FileEntry): boolean {
+  return entry.type === "directory" || !isZipFile(entry.name);
 }
 
 function getFileTypeIcon(entry: FileEntry): MaterialIconName {
@@ -106,6 +122,7 @@ interface FileRowActionsProps {
   onRename: (entry: FileEntry) => void;
   onDelete: (entry: FileEntry) => void;
   onUnzip: (entry: FileEntry) => void;
+  onArchive: (entry: FileEntry) => void;
 }
 
 function FileRowActions({
@@ -117,10 +134,12 @@ function FileRowActions({
   onRename,
   onDelete,
   onUnzip,
+  onArchive,
 }: FileRowActionsProps) {
   const isDirectory = entry.type === "directory";
   const isEditable = !isDirectory && isEditableTextFile(entry.name);
   const isZip = !isDirectory && isZipFile(entry.name);
+  const isArchivable = isArchivableEntry(entry);
 
   return (
     <div className={styles.fileActions}>
@@ -142,6 +161,14 @@ function FileRowActions({
       )}
       {canWrite && (
         <>
+          {isArchivable && (
+            <RowActionButton
+              icon={MATERIAL_ICONS.folderZip}
+              label="Archive to ZIP"
+              onClick={() => onArchive(entry)}
+              disabled={busy}
+            />
+          )}
           <RowActionButton
             icon={MATERIAL_ICONS.driveFileRenameOutline}
             label="Rename"
@@ -175,12 +202,13 @@ export function FileManager({ instance, canWrite }: FileManagerProps) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [openEditor, setOpenEditor] = useState<OpenEditorState | null>(null);
   const [loading, setLoading] = useState(true);
-  const [uploading, setUploading] = useState(false);
-  const [actionBusy, setActionBusy] = useState(false);
+  const [operation, setOperation] = useState<FileOperationState | null>(null);
   const [dragging, setDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [maxUploadFileSizeMb, setMaxUploadFileSizeMb] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const operationBusy = operation !== null;
 
   const allSelected = entries.length > 0 && entries.every((entry) => selected.has(entry.path));
   const canGoBack = currentPath.length > 0;
@@ -194,8 +222,40 @@ export function FileManager({ instance, canWrite }: FileManagerProps) {
     selectedPaths.length === 1 &&
     selectedEntries[0]?.type === "file" &&
     isZipFile(selectedEntries[0].name);
-  const actionsDisabled = actionBusy || (!canArchive && !canDelete && !canUnzip && !canRename);
-  const newDisabled = actionBusy || uploading;
+  const actionsDisabled = operationBusy || (!canArchive && !canDelete && !canUnzip && !canRename);
+  const newDisabled = operationBusy;
+
+  function setOperationProgress(progress: number | null) {
+    setOperation((current) => (current ? { ...current, progress } : current));
+  }
+
+  async function runFileOperation(
+    label: string,
+    task: (updateProgress: (progress: number | null) => void) => Promise<void>,
+    feedback: OperationFeedback,
+  ): Promise<boolean> {
+    setOperation({ label, progress: null });
+    setError(null);
+
+    try {
+      await task(setOperationProgress);
+      notifySuccess(feedback.successTitle, feedback.successDescription);
+      return true;
+    } catch (operationError) {
+      const message =
+        operationError instanceof Error ? operationError.message : `${label} failed`;
+      setError(message);
+      notifyError(feedback.errorTitle, message);
+      return false;
+    } finally {
+      setOperation(null);
+    }
+  }
+
+  function reportOperationError(title: string, message: string) {
+    setError(message);
+    notifyError(title, message);
+  }
 
   const actionOptions = [
     { value: "rename" as const, label: "Rename", disabled: !canRename },
@@ -285,19 +345,31 @@ export function FileManager({ instance, canWrite }: FileManagerProps) {
 
     const sizeError = validateUploadSize(files);
     if (sizeError) {
-      setError(sizeError);
+      reportOperationError("Upload failed", sizeError);
       return;
     }
 
-    setUploading(true);
-    setError(null);
-    try {
-      await uploadInstanceFiles(instance.id, currentPath, files);
-      await loadDirectory(currentPath);
-    } catch (uploadError) {
-      setError(uploadError instanceof Error ? uploadError.message : "Upload failed");
-    } finally {
-      setUploading(false);
+    const fileCount = files.length;
+    const succeeded = await runFileOperation(
+      fileCount === 1 ? "Uploading file…" : `Uploading ${fileCount} files…`,
+      async (updateProgress) => {
+        await uploadInstanceFiles(instance.id, currentPath, files, (percent) => {
+          updateProgress(percent);
+        });
+        await loadDirectory(currentPath);
+      },
+      {
+        successTitle: fileCount === 1 ? "File uploaded" : `${fileCount} files uploaded`,
+        successDescription:
+          fileCount === 1
+            ? "The file is now available in this folder."
+            : "The selected files are now available in this folder.",
+        errorTitle: "Upload failed",
+      },
+    );
+
+    if (!succeeded) {
+      return;
     }
   }
 
@@ -311,24 +383,21 @@ export function FileManager({ instance, canWrite }: FileManagerProps) {
     );
     if (!confirmed) return;
 
-    setActionBusy(true);
-    setError(null);
-    try {
-      await deleteInstanceFiles(instance.id, paths);
-      await loadDirectory(currentPath);
-      notifySuccess(
-        paths.length === 1 ? `"${label}" deleted` : `${paths.length} items deleted`,
-        paths.length === 1
-          ? "The file has been removed from the instance."
-          : "The selected items have been removed from the instance.",
-      );
-    } catch (deleteError) {
-      const message = deleteError instanceof Error ? deleteError.message : "Delete failed";
-      setError(message);
-      notifyError("Delete failed", message);
-    } finally {
-      setActionBusy(false);
-    }
+    await runFileOperation(
+      paths.length === 1 ? `Deleting "${label}"…` : `Deleting ${paths.length} items…`,
+      async () => {
+        await deleteInstanceFiles(instance.id, paths);
+        await loadDirectory(currentPath);
+      },
+      {
+        successTitle: paths.length === 1 ? `"${label}" deleted` : `${paths.length} items deleted`,
+        successDescription:
+          paths.length === 1
+            ? "The file has been removed from the instance."
+            : "The selected items have been removed from the instance.",
+        errorTitle: "Delete failed",
+      },
+    );
   }
 
   async function handleDelete() {
@@ -342,46 +411,69 @@ export function FileManager({ instance, canWrite }: FileManagerProps) {
     await deletePaths([entry.path], entry.name);
   }
 
+  async function handleArchiveEntry(entry: FileEntry) {
+    if (!canWrite || !isArchivableEntry(entry)) return;
+
+    await runFileOperation(
+      `Archiving "${entry.name}"…`,
+      async () => {
+        await archiveInstanceFiles(instance.id, [entry.path], currentPath);
+        await loadDirectory(currentPath);
+      },
+      {
+        successTitle: `"${entry.name}" archived`,
+        successDescription: "The ZIP file is now available in this folder.",
+        errorTitle: "Archive failed",
+      },
+    );
+  }
+
   async function handleArchive() {
     if (!canArchive || !canWrite) return;
 
-    setActionBusy(true);
-    setError(null);
-    try {
-      await archiveInstanceFiles(instance.id, selectedPaths, currentPath);
-      await loadDirectory(currentPath);
-    } catch (archiveError) {
-      setError(archiveError instanceof Error ? archiveError.message : "Archive failed");
-    } finally {
-      setActionBusy(false);
-    }
+    const itemCount = selectedPaths.length;
+    await runFileOperation(
+      itemCount === 1 ? "Creating archive…" : `Archiving ${itemCount} items…`,
+      async () => {
+        await archiveInstanceFiles(instance.id, selectedPaths, currentPath);
+        await loadDirectory(currentPath);
+      },
+      {
+        successTitle: itemCount === 1 ? "Archive created" : `${itemCount} items archived`,
+        successDescription: "The ZIP file is now available in this folder.",
+        errorTitle: "Archive failed",
+      },
+    );
   }
 
-  async function unzipPath(zipPath: string) {
+  async function unzipPath(zipPath: string, zipName: string) {
     if (!canWrite) return;
 
-    setActionBusy(true);
-    setError(null);
-    try {
-      const result = await unzipInstanceFile(instance.id, zipPath);
-      await loadDirectory(result.extractedTo);
-    } catch (unzipError) {
-      setError(unzipError instanceof Error ? unzipError.message : "Unzip failed");
-    } finally {
-      setActionBusy(false);
-    }
+    await runFileOperation(
+      `Extracting "${zipName}"…`,
+      async () => {
+        const result = await unzipInstanceFile(instance.id, zipPath);
+        await loadDirectory(result.extractedTo);
+      },
+      {
+        successTitle: `"${zipName}" extracted`,
+        successDescription: "Archive contents are now available in this folder.",
+        errorTitle: "Unzip failed",
+      },
+    );
   }
 
   async function handleUnzip() {
     if (!canUnzip || !canWrite) return;
     const zipPath = selectedPaths[0];
+    const zipName = selectedEntries[0]?.name ?? "archive.zip";
     if (!zipPath) return;
-    await unzipPath(zipPath);
+    await unzipPath(zipPath, zipName);
   }
 
   async function handleUnzipEntry(entry: FileEntry) {
     if (entry.type !== "file" || !isZipFile(entry.name)) return;
-    await unzipPath(entry.path);
+    await unzipPath(entry.path, entry.name);
   }
 
   async function renameEntry(entry: FileEntry) {
@@ -390,19 +482,18 @@ export function FileManager({ instance, canWrite }: FileManagerProps) {
     const newName = window.prompt(`Rename "${entry.name}" to:`, entry.name);
     if (!newName || newName.trim() === entry.name) return;
 
-    setActionBusy(true);
-    setError(null);
-    try {
-      const renamed = await renameInstanceEntry(instance.id, entry.path, newName.trim());
-      await loadDirectory(currentPath);
-      notifySuccess(`Renamed to "${renamed.name}"`, `"${entry.name}" was renamed successfully.`);
-    } catch (renameError) {
-      const message = renameError instanceof Error ? renameError.message : "Rename failed";
-      setError(message);
-      notifyError("Rename failed", message);
-    } finally {
-      setActionBusy(false);
-    }
+    await runFileOperation(
+      `Renaming "${entry.name}"…`,
+      async () => {
+        await renameInstanceEntry(instance.id, entry.path, newName.trim());
+        await loadDirectory(currentPath);
+      },
+      {
+        successTitle: `Renamed to "${newName.trim()}"`,
+        successDescription: `"${entry.name}" was renamed successfully.`,
+        errorTitle: "Rename failed",
+      },
+    );
   }
 
   async function handleRename() {
@@ -419,19 +510,24 @@ export function FileManager({ instance, canWrite }: FileManagerProps) {
     const name = window.prompt(label);
     if (!name?.trim()) return;
 
-    setActionBusy(true);
-    setError(null);
-    try {
-      const created = await createInstanceEntry(instance.id, currentPath, name.trim(), type);
-      await loadDirectory(currentPath);
-      if (created.type === "file" && isEditableTextFile(created.name)) {
-        setOpenEditor({ path: created.path, name: created.name });
-      }
-    } catch (createError) {
-      setError(createError instanceof Error ? createError.message : "Create failed");
-    } finally {
-      setActionBusy(false);
-    }
+    await runFileOperation(
+      type === "directory" ? "Creating directory…" : "Creating file…",
+      async () => {
+        const created = await createInstanceEntry(instance.id, currentPath, name.trim(), type);
+        await loadDirectory(currentPath);
+        if (created.type === "file" && isEditableTextFile(created.name)) {
+          setOpenEditor({ path: created.path, name: created.name });
+        }
+      },
+      {
+        successTitle: type === "directory" ? `"${name.trim()}" created` : `"${name.trim()}" created`,
+        successDescription:
+          type === "directory"
+            ? "The new folder is ready in this directory."
+            : "The new file is ready in this directory.",
+        errorTitle: type === "directory" ? "Create folder failed" : "Create file failed",
+      },
+    );
   }
 
   async function handleAction(action: FileAction) {
@@ -467,6 +563,9 @@ export function FileManager({ instance, canWrite }: FileManagerProps) {
                 {formatPathLabel(currentPath)}
               </span>
             </div>
+            {operation && (
+              <FileActionProgress label={operation.label} progress={operation.progress} />
+            )}
             <div className={styles.actions}>
               {canWrite && (
                 <>
@@ -474,7 +573,7 @@ export function FileManager({ instance, canWrite }: FileManagerProps) {
                     className={styles.toolbarDropdown}
                     variant="console"
                     options={NEW_OPTIONS}
-                    triggerLabel={actionBusy ? "Working…" : "New"}
+                    triggerLabel={operationBusy ? "Working…" : "New"}
                     disabled={newDisabled}
                     aria-label="Create new"
                     onChange={(action) => void handleCreate(action)}
@@ -483,15 +582,15 @@ export function FileManager({ instance, canWrite }: FileManagerProps) {
                     type="button"
                     className={styles.actionPrimary}
                     onClick={() => fileInputRef.current?.click()}
-                    disabled={uploading}
+                    disabled={operationBusy}
                   >
-                    {uploading ? "Uploading…" : "Upload"}
+                    Upload
                   </button>
                   <Dropdown<FileAction>
                     className={styles.toolbarDropdown}
                     variant="console"
                     options={actionOptions}
-                    triggerLabel={actionBusy ? "Working…" : "Actions"}
+                    triggerLabel={operationBusy ? "Working…" : "Actions"}
                     disabled={actionsDisabled}
                     aria-label="File actions"
                     onChange={(action) => void handleAction(action)}
@@ -501,11 +600,36 @@ export function FileManager({ instance, canWrite }: FileManagerProps) {
             </div>
           </div>
 
-          {error && <p className={styles.error}>{error}</p>}
+          {error && (
+            <p className={styles.error} role="alert">
+              {error}
+            </p>
+          )}
 
-          <ScrollArea
-            variant="console"
-            className={`${styles.listPane} ${dragging ? styles.listPaneDragging : ""}`}
+          <div className={styles.listWrap}>
+            {canGoBack && (
+              <div className={`${styles.fileRow} ${styles.backRow}`}>
+                <div className={styles.rowLead}>
+                  <button
+                    type="button"
+                    className={styles.fileName}
+                    onClick={() => void loadDirectory(parentPath)}
+                  >
+                    <MaterialIcon name={MATERIAL_ICONS.folderOpen} className={styles.fileTypeIcon} />
+                    <span>..</span>
+                  </button>
+                </div>
+                <div className={styles.rowMeta}>
+                  <span className={styles.fileMeta} />
+                  <span className={styles.fileMeta} />
+                </div>
+                <div className={styles.rowActions} aria-hidden />
+              </div>
+            )}
+
+            <ScrollArea
+              variant="console"
+              className={`${styles.listPane} ${dragging ? styles.listPaneDragging : ""}`}
             onDragEnter={(event) => {
               if (!canWrite) return;
               event.preventDefault();
@@ -527,7 +651,7 @@ export function FileManager({ instance, canWrite }: FileManagerProps) {
               <p className={styles.state}>Loading files…</p>
             ) : (
               <div className={styles.fileTable}>
-                {(entries.length > 0 || canGoBack) && (
+                {entries.length > 0 && (
                   <div className={styles.fileHeaderRow}>
                     <div className={styles.rowLead}>
                       {canWrite && entries.length > 0 ? (
@@ -545,26 +669,6 @@ export function FileManager({ instance, canWrite }: FileManagerProps) {
                     <div className={styles.rowMeta}>
                       <span className={`${styles.fileMeta} ${styles.fileMetaHeader}`}>Size</span>
                       <span className={`${styles.fileMeta} ${styles.fileMetaHeader}`}>Modified</span>
-                    </div>
-                    <div className={styles.rowActions} aria-hidden />
-                  </div>
-                )}
-
-                {canGoBack && (
-                  <div className={styles.fileRow}>
-                    <div className={styles.rowLead}>
-                      <button
-                        type="button"
-                        className={styles.fileName}
-                        onClick={() => void loadDirectory(parentPath)}
-                      >
-                        <MaterialIcon name={MATERIAL_ICONS.folderOpen} className={styles.fileTypeIcon} />
-                        <span>..</span>
-                      </button>
-                    </div>
-                    <div className={styles.rowMeta}>
-                      <span className={styles.fileMeta} />
-                      <span className={styles.fileMeta} />
                     </div>
                     <div className={styles.rowActions} aria-hidden />
                   </div>
@@ -618,12 +722,13 @@ export function FileManager({ instance, canWrite }: FileManagerProps) {
                           <FileRowActions
                             entry={entry}
                             canWrite={canWrite}
-                            busy={actionBusy}
+                            busy={operationBusy}
                             onDownload={downloadEntry}
                             onEdit={(item) => setOpenEditor({ path: item.path, name: item.name })}
                             onRename={(item) => void renameEntry(item)}
                             onDelete={(item) => void handleDeleteEntry(item)}
                             onUnzip={(item) => void handleUnzipEntry(item)}
+                            onArchive={(item) => void handleArchiveEntry(item)}
                           />
                         </div>
                       </div>
@@ -633,6 +738,7 @@ export function FileManager({ instance, canWrite }: FileManagerProps) {
               </div>
             )}
           </ScrollArea>
+          </div>
         </div>
       </article>
 
